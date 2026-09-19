@@ -1,0 +1,4 @@
+---
+import Base from '@/layouts/Base.astro';import { Portal } from '@/components/Portal';const {token}=Astro.params;
+---
+<Base title="Client portal — KiguFlow"><Portal token={token!} client:load /></Base>

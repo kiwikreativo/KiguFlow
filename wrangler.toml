@@ -1,0 +1,16 @@
+name = "kiguflow"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "dist"
+binding = "ASSETS"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "kiguflow-files"
+
+[vars]
+APP_URL = "http://localhost:8787"
+ALLOWED_ORIGINS = "http://localhost:8787,http://localhost:4321"
+ENVIRONMENT = "development"

@@ -1,0 +1,51 @@
+{
+  "name": "kiguflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --env-file .env",
+    "dev:astro": "astro dev",
+    "build": "astro check && astro build",
+    "check": "astro check && tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "latest",
+    "@astrojs/react": "latest",
+    "@fontsource-variable/geist": "latest",
+    "@gsap/react": "latest",
+    "@hono/zod-validator": "latest",
+    "@neondatabase/serverless": "latest",
+    "@phosphor-icons/react": "latest",
+    "@tailwindcss/vite": "latest",
+    "astro": "latest",
+    "drizzle-orm": "latest",
+    "dotenv": "latest",
+    "gsap": "latest",
+    "hono": "latest",
+    "nanoid": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "sonner": "latest",
+    "tailwindcss": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@astrojs/check": "latest",
+    "@cloudflare/workers-types": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "drizzle-kit": "latest",
+    "prettier": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest",
+    "wrangler": "latest"
+  }
+}
