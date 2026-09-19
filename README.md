@@ -30,7 +30,7 @@ npm run db:seed
 npm run dev
 ```
 
-The development URL is `http://localhost:8787`. `npm run dev:astro` is available for frontend-only work, but full R2 behavior should be exercised through Wrangler.
+The development URL used in this workspace is `http://localhost:4321`. `npm run dev:astro` is available for frontend-only work, but full R2 behavior should be exercised through Wrangler.
 
 ## Environment
 
@@ -42,8 +42,8 @@ The development URL is `http://localhost:8787`. `npm run dev:astro` is available
 | `ADMIN_PASSWORD` | Admin password used only by the seed command |
 | `APP_URL` | Public application origin |
 | `ALLOWED_ORIGINS` | Comma-separated trusted browser origins |
-| `R2_*` | R2 account, bucket, and optional public URL configuration |
-| `RESEND_API_KEY` | Reserved for V2 email delivery |
+| `RESEND_API_KEY` | Server-only Resend key for portal invitations |
+| `RESEND_FROM_EMAIL` | Development sender; defaults to `onboarding@resend.dev` |
 | `ENVIRONMENT` | `development` or `production`; controls secure cookies |
 
 Never commit `.env`. Production secrets should be configured with `wrangler secret put` or the Cloudflare dashboard. Update the `FILES` binding and bucket name in `wrangler.toml` for the target account.
@@ -73,7 +73,7 @@ Portal links contain 256-bit random tokens. Only token hashes are stored. Portal
 
 ## Files
 
-File objects are written to R2 under random keys; PostgreSQL stores metadata and object keys. Uploads are allow-listed, capped at 10 MB, and compensated if metadata persistence fails. Downloads are private and authenticated. Configure the `FILES` R2 binding before testing uploads.
+File objects are written to R2 under random keys; PostgreSQL stores metadata and object keys. Uploads are allow-listed, capped at 10 MB, and compensated if metadata persistence fails. Files are private by default. Admin downloads require a session and client downloads require a valid project portal token plus an explicit sharing flag. Keep R2 public access disabled; no `R2_PUBLIC_URL` or S3 access keys are used by the application runtime.
 
 ## Quality checks
 
@@ -87,7 +87,7 @@ npm run build
 
 ## Deployment
 
-Create a Neon database and R2 bucket, configure environment variables and secrets in Cloudflare, apply migrations from a trusted deployment environment, then run:
+Create a Neon database and private R2 bucket, configure `DATABASE_URL`, `AUTH_SECRET`, `RESEND_API_KEY`, and production origins as encrypted Cloudflare secrets/variables, bind the bucket as `FILES`, apply migrations from a trusted deployment environment, then run:
 
 ```bash
 npm run build
@@ -98,4 +98,4 @@ The intended Git remote is `git@github.com:kiwikreativo/KiguFlow.git` on branch 
 
 ## MVP boundaries
 
-KiguFlow tracks invoice records and uploaded PDFs but does not process payments. Contracts are uploaded documents; electronic signatures are excluded. Resend is represented in configuration but outbound email and automated reminders are deferred. The current UI exposes the core admin/client/project/task/invoice flow; richer template editing, document categorization, and the visual brief builder remain natural V2 refinements.
+KiguFlow tracks invoice records and uploaded PDFs but does not process payments. Contracts are uploaded documents; electronic signatures and a document editor are excluded. The Resend development sender can normally deliver only to the account owner; verify a custom domain before inviting arbitrary production clients.

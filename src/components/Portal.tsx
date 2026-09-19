@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   Check,
   DownloadSimple,
@@ -41,6 +41,7 @@ type PortalData = {
     size: number;
   }>;
   activity: Array<{ id: string; summary: string; createdAt: string }>;
+  brief: {id:string;title:string;status:string;fieldsSnapshot:Array<{id:string;label:string;type:string;required:boolean;options?:string[]}>;responses:Array<{fieldId:string;value:unknown}>}|null;
 };
 export function Portal({ token }: { token: string }) {
   const [data, setData] = useState<PortalData | null>(null),
@@ -63,6 +64,8 @@ export function Portal({ token }: { token: string }) {
       toast.error(e instanceof Error ? e.message : "Could not complete task");
     }
   }
+  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();try{await api(`/portal/${token}/files`,{method:'POST',body:new FormData(e.currentTarget)});e.currentTarget.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
+  async function saveBrief(element:HTMLFormElement,submit=false){if(!data?.brief)return;const form=new FormData(element);const responses=Object.fromEntries(data.brief.fieldsSnapshot.map(field=>[field.id,field.type==='checkbox'?form.get(field.id)==='on':form.get(field.id)||'']));try{await api(`/portal/${token}/brief`,{method:'PUT',body:JSON.stringify({responses,submit})});toast.success(submit?'Brief submitted':'Draft saved');load()}catch(x){toast.error(x instanceof Error?x.message:'Could not save brief')}}
   if (error)
     return (
       <main className="grid min-h-screen place-items-center bg-[#17201d] p-6 text-white">
@@ -237,13 +240,14 @@ export function Portal({ token }: { token: string }) {
                     </strong>
                     <span className="text-xs text-[#777]">{f.category}</span>
                   </div>
-                  <DownloadSimple />
+                  <a href={`/api/portal/${token}/files/${f.id}/download`} aria-label={`Download ${f.filename}`}><DownloadSimple /></a>
                 </div>
               ))}
               {!data.files.length && (
                 <p className="py-8 text-sm text-[#777]">No shared files yet.</p>
               )}
             </div>
+            <form onSubmit={upload} className="mt-5 grid gap-3 border-t border-white/10 pt-5"><input className="field" type="file" name="file" required/><input className="field" name="category" defaultValue="Client uploads"/><button className="btn-secondary">Upload a file</button></form>
           </div>
           <div className="surface rounded-3xl p-6">
             <h2 className="text-2xl font-semibold">Invoices</h2>
@@ -272,6 +276,7 @@ export function Portal({ token }: { token: string }) {
             </div>
           </div>
         </section>
+        {data.brief&&<section className="surface mt-20 rounded-2xl p-6 md:p-9"><div className="flex justify-between"><h2 className="text-3xl font-semibold">{data.brief.title}</h2><span className="badge">{data.brief.status.replaceAll('_',' ')}</span></div><form className="mt-8 grid gap-5" onSubmit={e=>{e.preventDefault();void saveBrief(e.currentTarget,false)}}>{data.brief.fieldsSnapshot.map(field=>{const value=data.brief?.responses.find(r=>r.fieldId===field.id)?.value;return <label className="label">{field.label}{field.required?' *':''}{field.type==='long_text'?<textarea className="field min-h-28" name={field.id} defaultValue={String(value||'')} required={field.required}/>:field.type==='select'?<select className="field" name={field.id} defaultValue={String(value||'')} required={field.required}><option value="">Choose…</option>{field.options?.map(x=><option value={x}>{x}</option>)}</select>:field.type==='checkbox'?<input type="checkbox" name={field.id} defaultChecked={value===true}/>:field.type==='file'?<p className="text-sm text-[#777]">Upload this file in the Files section and use the requested category.</p>:<input className="field" name={field.id} type={field.type==='email'?'email':field.type==='url'?'url':'text'} defaultValue={String(value||'')} required={field.required}/>}</label>})}<div className="flex gap-3"><button className="btn-secondary">Save draft</button><button className="btn-primary" type="button" onClick={e=>{if(e.currentTarget.form)void saveBrief(e.currentTarget.form,true)}}>Submit brief</button></div></form></section>}
       </div>
     </main>
   );

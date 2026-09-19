@@ -47,16 +47,22 @@ type Project = {
   invoices: Invoice[];
   progress: number;
   activity: Array<{ id: string; summary: string; createdAt: string }>;
+  files: Array<{id:string;filename:string;category:string;size:number;clientVisible:boolean;uploadedBy:string}>;
+  documents: Array<{id:string;title:string;category:string;status:string}>;
+  brief: {id:string;title:string;status:string}|null;
+  portalTokens: Array<{id:string;expiresAt:string|null;revokedAt:string|null;createdAt:string}>;
 };
 export function ProjectDetail({ id }: { id: string }) {
   const [data, setData] = useState<Project | null>(null),
-    [modal, setModal] = useState<"task" | "phase" | "invoice" | null>(null);
+    [modal, setModal] = useState<"task" | "phase" | "invoice" | null>(null),
+    [briefTemplates,setBriefTemplates]=useState<Array<{id:string;name:string}>>([]);
   const load = () =>
     api<Project>(`/admin/projects/${id}`)
       .then(setData)
       .catch(() => (location.href = "/projects"));
   useEffect(() => {
     void load();
+    void api<Array<{id:string;name:string}>>('/admin/brief-templates').then(setBriefTemplates);
   }, [id]);
   const byPhase = useMemo(
     () =>
@@ -134,6 +140,9 @@ export function ProjectDetail({ id }: { id: string }) {
     await navigator.clipboard.writeText(result.url);
     toast.success("Secure portal link copied");
   }
+  async function invite(){try{const result=await api<{url:string}>(`/admin/projects/${id}/portal-token`,{method:'POST'});await api(`/admin/projects/${id}/portal-invitation`,{method:'POST',body:JSON.stringify({url:result.url})});toast.success('Portal invitation sent')}catch(e){toast.error(e instanceof Error?e.message:'Invitation failed');load()}}
+  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const body=new FormData(e.currentTarget);try{await api(`/admin/projects/${id}/files`,{method:'POST',body});e.currentTarget.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
+  async function filePatch(fileId:string,patch:unknown){await api(`/admin/files/${fileId}`,{method:'PATCH',body:JSON.stringify(patch)});load()}
   if (!data)
     return (
       <Shell title="Loading project…">
@@ -144,10 +153,10 @@ export function ProjectDetail({ id }: { id: string }) {
     <Shell
       title={data.name}
       action={
-        <button className="btn-secondary" onClick={portal}>
+        <div className="flex gap-2"><button className="btn-secondary" onClick={portal}>
           <Copy />
           Copy portal link
-        </button>
+        </button><button className="btn-primary" onClick={invite}>Email invitation</button></div>
       }
     >
       <Toaster richColors />
@@ -340,6 +349,8 @@ export function ProjectDetail({ id }: { id: string }) {
         </div>
       </section>
       <section className="mt-10 grid gap-4 lg:grid-cols-2">
+        <div className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Client brief</h2>{data.brief?<div className="mt-4 flex items-center justify-between"><div><strong>{data.brief.title}</strong><p className="text-sm capitalize text-[#777]">{data.brief.status.replaceAll('_',' ')}</p></div><select className="field w-auto" value={data.brief.status} onChange={e=>mutate(`/admin/briefs/${data.brief!.id}`,{status:e.target.value},'PATCH')}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="submitted">Submitted</option><option value="reviewed">Reviewed</option></select></div>:<form className="mt-4 flex gap-2" onSubmit={async e=>{e.preventDefault();const templateId=String(new FormData(e.currentTarget).get('templateId'));await mutate(`/admin/projects/${id}/brief`,{templateId})}}><select className="field" name="templateId" required><option value="">Choose a brief template</option>{briefTemplates.map(t=><option value={t.id}>{t.name}</option>)}</select><button className="btn-secondary">Assign</button></form>}</div>
+        <div className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Private project files</h2><form onSubmit={upload} className="mt-4 grid gap-3"><input className="field" type="file" name="file" required/><input className="field" name="category" placeholder="Category" defaultValue="General"/><label className="flex gap-2 text-sm"><input type="checkbox" name="clientVisible" value="true"/>Share with client</label><button className="btn-secondary">Upload file</button></form><div className="mt-5 divide-y divide-white/10">{data.files.map(f=><div className="flex items-center gap-3 py-3 text-sm"><a className="min-w-0 flex-1 truncate font-semibold" href={`/api/admin/files/${f.id}/download`}>{f.filename}</a><label className="flex items-center gap-2"><input type="checkbox" checked={f.clientVisible} onChange={e=>filePatch(f.id,{clientVisible:e.target.checked})}/>Shared</label><button className="text-red-400" onClick={async()=>{if(confirm('Delete this file?')){await api(`/admin/files/${f.id}`,{method:'DELETE'});load()}}}>Delete</button></div>)}</div></div>
         <div className="surface rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Invoices</h2>

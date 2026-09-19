@@ -94,10 +94,10 @@ export function Clients() {
               {rows.map((r) => (
                 <tr>
                   <td className="p-4">
-                    <strong className="block">{r.name}</strong>
+                    <a href={`/clients/${r.id}`} className="block hover:text-[#4ADE80]"><strong className="block">{r.name}</strong>
                     <span className="text-[#777]">
                       {r.companyName || "Independent"}
-                    </span>
+                    </span></a>
                   </td>
                   <td>{r.email}</td>
                   <td>
@@ -145,7 +145,7 @@ export function Clients() {
               Phone
               <input name="phone" className="field" />
             </label>
-            <button className="btn-primary mt-3">Create client</button>
+            <button className="btn-primary mt-3 w-full py-3.5">Create client</button>
           </form>
         </Modal>
       )}

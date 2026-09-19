@@ -26,6 +26,11 @@ button { cursor: pointer; }
 .vertex-admin [class~="bg-white"], .vertex-admin [class*="bg-white/"] { background-color: #0b110e !important; color: #fff; }
 .vertex-admin table thead { color: #71717a !important; }
 .vertex-admin tbody, .vertex-admin .divide-y { border-color: rgba(255,255,255,.1) !important; }
+[data-modal] form { gap: 1.15rem; }
+[data-modal] .field { min-height: 46px; background: #0b110e; border-color: rgba(255,255,255,.12); }
+[data-modal] textarea.field { min-height: 112px; resize: vertical; }
+[data-modal] .btn-primary { min-height: 48px; width: 100%; margin-top: .5rem; }
+[data-modal] option { background: #0b110e; color: #fff; }
 @keyframes marquee { to { transform: translateX(-50%); } }
 .marquee { animation: marquee 26s linear infinite; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }

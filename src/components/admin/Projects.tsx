@@ -4,6 +4,7 @@ import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
+import { SERVICE_PACKAGES } from "@/lib/project-options";
 type Project = {
   id: string;
   name: string;
@@ -18,7 +19,8 @@ export function Projects() {
   const [rows, setRows] = useState<Project[]>([]),
     [clients, setClients] = useState<Client[]>([]),
     [templates, setTemplates] = useState<Template[]>([]),
-    [open, setOpen] = useState(false);
+    [open, setOpen] = useState(false),
+    [creating, setCreating] = useState(false);
   const load = () =>
     Promise.all([
       api<Project[]>("/admin/projects"),
@@ -37,6 +39,8 @@ export function Projects() {
   async function create(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
+    if(creating)return;
+    setCreating(true);
     try {
       const p = await api<{ id: string }>("/admin/projects", {
         method: "POST",
@@ -44,17 +48,18 @@ export function Projects() {
           clientId: f.get("clientId"),
           name: f.get("name"),
           description: f.get("description") || null,
-          serviceType: f.get("serviceType") || null,
+          serviceType: f.get("serviceType"),
+          startingPoint: f.get("startingPoint"),
           status: "onboarding",
           startDate: f.get("startDate") || null,
           dueDate: f.get("dueDate") || null,
-          templateId: f.get("templateId") || null,
         }),
       });
       toast.success("Project created");
       location.href = `/projects/${p.id}`;
     } catch (x) {
       toast.error(x instanceof Error ? x.message : "Could not create project");
+      setCreating(false);
     }
   }
   return (
@@ -119,17 +124,16 @@ export function Projects() {
             </label>
             <label className="label">
               Service type
-              <input
-                name="serviceType"
-                className="field"
-                placeholder="Website development"
-              />
+              <select name="serviceType" className="field" required>
+                <option value="">Choose a service</option>
+                {SERVICE_PACKAGES.map((service) => <option value={service}>{service}</option>)}
+              </select>
             </label>
             <label className="label">
               Description
               <textarea name="description" className="field min-h-24" />
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className="label">
                 Start date
                 <input type="date" name="startDate" className="field" />
@@ -141,14 +145,21 @@ export function Projects() {
             </div>
             <label className="label">
               Starting point
-              <select name="templateId" className="field">
-                <option value="">Start from scratch</option>
-                {templates.map((t) => (
-                  <option value={t.id}>{t.name}</option>
-                ))}
+              <select name="startingPoint" className="field" required>
+                <option value="">Choose a starting point</option>
+                <optgroup label="Workflow stage">
+                  <option value="stage:scratch">Start from scratch</option>
+                  <option value="stage:discovery_completed">Discovery completed</option>
+                  <option value="stage:design_approved">Design approved</option>
+                  <option value="stage:development_started">Development started</option>
+                  <option value="stage:existing_site">Existing site / live product</option>
+                </optgroup>
+                <optgroup label="Reusable workflows">
+                  {templates.map((template) => <option value={`template:${template.id}`}>{template.name}</option>)}
+                </optgroup>
               </select>
             </label>
-            <button className="btn-primary mt-3">Create project</button>
+            <button className="btn-primary mt-3" disabled={creating}>{creating ? 'Creating project…' : 'Create project'}</button>
           </form>
         </Modal>
       )}

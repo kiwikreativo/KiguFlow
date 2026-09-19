@@ -11,6 +11,6 @@ binding = "FILES"
 bucket_name = "kiguflow-files"
 
 [vars]
-APP_URL = "http://localhost:8787"
+APP_URL = "http://localhost:4321"
 ALLOWED_ORIGINS = "http://localhost:8787,http://localhost:4321"
 ENVIRONMENT = "development"

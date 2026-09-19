@@ -6,6 +6,8 @@ type RuntimeEnv = {
   APP_URL: string;
   ALLOWED_ORIGINS: string;
   ENVIRONMENT: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
   FILES: R2Bucket;
   ASSETS: Fetcher;
 };

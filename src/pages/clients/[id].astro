@@ -1,0 +1,6 @@
+---
+import Base from '@/layouts/Base.astro';
+import { ClientDetail } from '@/components/admin/ClientDetail';
+const { id } = Astro.params;
+---
+<Base title="Client — KiguFlow"><ClientDetail id={id!} client:load /></Base>

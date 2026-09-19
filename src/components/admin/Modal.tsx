@@ -1,2 +1,25 @@
-import { X } from '@phosphor-icons/react'; import type { ReactNode } from 'react';
-export function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) { return <div className="fixed inset-0 z-[100] grid place-items-center bg-[#17201d]/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-title" onMouseDown={(e)=>{if(e.target===e.currentTarget)onClose();}}><div className="max-h-[92vh] w-full max-w-xl overflow-auto rounded-2xl bg-[#f7f5ef] p-6 shadow-2xl md:p-8"><div className="mb-7 flex items-center justify-between"><h2 id="modal-title" className="text-2xl font-semibold tracking-[-.04em]">{title}</h2><button aria-label="Close dialog" onClick={onClose} className="rounded-lg p-2 hover:bg-black/5"><X/></button></div>{children}</div></div>; }
+import { X } from '@phosphor-icons/react';
+import { useEffect, type ReactNode } from 'react';
+
+export function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
+    document.addEventListener('keydown', closeOnEscape);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  return <div className="fixed inset-0 z-[100] grid place-items-center bg-[#010A04]/80 p-3 backdrop-blur-md sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modal-title" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div data-modal className="relative max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-[8px] border border-white/10 bg-[#191C21] text-white shadow-[0_32px_100px_rgba(0,0,0,.65)]">
+      <div className="vertex-grid pointer-events-none absolute inset-0 opacity-[.08]" />
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#191C21]/95 px-5 py-5 backdrop-blur-xl sm:px-7">
+        <div><p className="vertex-mono text-[9px] uppercase tracking-[.18em] text-[#4ADE80]">Workspace action</p><h2 id="modal-title" className="mt-1 text-2xl font-medium tracking-[-.04em]">{title}</h2></div>
+        <button type="button" aria-label="Close dialog" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-[8px] border border-white/10 text-white/55 transition-colors hover:border-white/20 hover:bg-white/[.05] hover:text-white"><X size={18}/></button>
+      </header>
+      <div className="relative p-5 sm:p-7">{children}</div>
+    </div>
+  </div>;
+}
