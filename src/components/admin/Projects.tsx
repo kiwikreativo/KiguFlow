@@ -13,7 +13,7 @@ type Project = {
   dueDate: string | null;
   serviceType: string | null;
 };
-type Client = { id: string; name: string };
+type Client = { id: string; name: string; companyName: string | null; email: string };
 type Template = { id: string; name: string };
 export function Projects() {
   const [rows, setRows] = useState<Project[]>([]),
@@ -114,7 +114,9 @@ export function Projects() {
               <select name="clientId" required className="field">
                 <option value="">Choose client</option>
                 {clients.map((c) => (
-                  <option value={c.id}>{c.name}</option>
+                  <option value={c.id}>
+                    {[c.name, c.companyName, c.email].filter(Boolean).join(" — ")}
+                  </option>
                 ))}
               </select>
             </label>

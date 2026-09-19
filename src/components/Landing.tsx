@@ -10,6 +10,7 @@ import {
   TrendUp,
 } from "@phosphor-icons/react";
 import { useRef } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const systems = [
@@ -112,13 +113,16 @@ export function Landing() {
             <a href="#workflow">Workflow</a>
             <a href="#control">Control</a>
           </div>
-          <a
-            href="/login"
-            className="vertex-button group flex items-center gap-3 rounded-[8px] bg-[#4ADE80] px-4 py-2.5 text-sm font-semibold text-[#010A04]"
-          >
-            Open workspace
-            <ArrowRight className="transition-transform group-hover:translate-x-1" />
-          </a>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
+            <a
+              href="/login"
+              className="vertex-button group flex items-center gap-3 rounded-[8px] bg-[#4ADE80] px-4 py-2.5 text-sm font-semibold text-[#010A04]"
+            >
+              <span className="hidden sm:inline">Open workspace</span>
+              <ArrowRight className="transition-transform group-hover:translate-x-1" />
+            </a>
+          </div>
         </div>
       </nav>
       <section className="relative flex min-h-screen items-center overflow-hidden px-5 pb-20 pt-32 lg:px-10">
@@ -381,7 +385,7 @@ export function Landing() {
           </div>
           <a
             href="/login"
-            className="vertex-button flex shrink-0 items-center gap-4 rounded-[8px] bg-[#010A04] px-6 py-4 font-semibold text-white"
+            className="theme-dark-cta vertex-button flex shrink-0 items-center gap-4 rounded-[8px] bg-[#010A04] px-6 py-4 font-semibold text-white"
           >
             Enter workspace
             <ArrowRight />

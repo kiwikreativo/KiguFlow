@@ -6,6 +6,7 @@ import {
   LockKey,
   WarningCircle,
 } from "@phosphor-icons/react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
 type PortalData = {
@@ -68,7 +69,7 @@ export function Portal({ token }: { token: string }) {
   async function saveBrief(element:HTMLFormElement,submit=false){if(!data?.brief)return;const form=new FormData(element);const responses=Object.fromEntries(data.brief.fieldsSnapshot.map(field=>[field.id,field.type==='checkbox'?form.get(field.id)==='on':form.get(field.id)||'']));try{await api(`/portal/${token}/brief`,{method:'PUT',body:JSON.stringify({responses,submit})});toast.success(submit?'Brief submitted':'Draft saved');load()}catch(x){toast.error(x instanceof Error?x.message:'Could not save brief')}}
   if (error)
     return (
-      <main className="grid min-h-screen place-items-center bg-[#17201d] p-6 text-white">
+      <main className="grid min-h-screen place-items-center bg-[var(--paper)] p-6 text-[var(--ink)]">
         <div className="max-w-md text-center">
           <WarningCircle className="mx-auto" size={42} />
           <h1 className="mt-5 text-3xl font-semibold">Portal unavailable</h1>
@@ -78,7 +79,7 @@ export function Portal({ token }: { token: string }) {
     );
   if (!data)
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f4f1e9]">
+      <main className="grid min-h-screen place-items-center bg-[var(--paper)] text-[var(--ink)]">
         Loading your project…
       </main>
     );
@@ -86,15 +87,18 @@ export function Portal({ token }: { token: string }) {
     (t) => t.requiresClientAction && t.status !== "completed",
   );
   return (
-    <main className="min-h-screen bg-[#010A04] pb-24 text-white">
+    <main className="client-portal min-h-screen bg-[#010A04] pb-24 text-white">
       <Toaster richColors />
       <header className="border-b border-white/10 bg-[#050f08] px-5 py-5 text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <strong className="text-lg tracking-[-.04em] text-[#4ADE80]">KiguFlow</strong>
-          <span className="flex items-center gap-2 text-xs text-white/55">
-            <LockKey />
-            Private client portal
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="hidden items-center gap-2 text-xs text-white/55 sm:flex">
+              <LockKey />
+              Private client portal
+            </span>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <div className="mx-auto max-w-6xl px-5 py-10 md:py-16">

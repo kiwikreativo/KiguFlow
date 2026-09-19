@@ -9,6 +9,7 @@ import {
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { api } from "@/lib/api";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const links = [
   ["/dashboard", "Overview", House],
@@ -28,7 +29,7 @@ export function Shell({
 }) {
   const path = typeof window === "undefined" ? "" : window.location.pathname;
   return (
-    <main className="min-h-screen bg-[#010A04] text-white md:grid md:grid-cols-[248px_1fr]">
+    <main className="app-shell min-h-screen bg-[#010A04] text-white md:grid md:grid-cols-[248px_1fr]">
       <aside className="hidden min-h-screen flex-col border-r border-white/10 bg-[#050f08] p-5 text-white md:fixed md:flex md:w-[248px]">
         <a
           href="/dashboard"
@@ -51,16 +52,19 @@ export function Shell({
             </a>
           ))}
         </nav>
-        <button
-          onClick={async () => {
-            await api("/auth/logout", { method: "POST" });
-            location.href = "/login";
-          }}
-          className="mt-auto flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-sm text-white/40 hover:bg-white/5 hover:text-white"
-        >
-          <SignOut size={19} />
-          Sign out
-        </button>
+        <div className="mt-auto grid gap-3">
+          <ThemeToggle className="w-fit" />
+          <button
+            onClick={async () => {
+              await api("/auth/logout", { method: "POST" });
+              location.href = "/login";
+            }}
+            className="flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-sm text-white/40 hover:bg-white/5 hover:text-white"
+          >
+            <SignOut size={19} />
+            Sign out
+          </button>
+        </div>
       </aside>
       <section className="vertex-admin min-w-0 p-4 pb-24 md:col-start-2 md:p-8 lg:p-10">
         <header className="mb-8 flex items-center justify-between gap-4">
@@ -72,7 +76,10 @@ export function Shell({
               {title}
             </h1>
           </div>
-          {action}
+          <div className="flex items-center gap-3">
+            <ThemeToggle className="admin-header-theme" />
+            {action}
+          </div>
         </header>
         {children}
       </section>
@@ -87,6 +94,7 @@ export function Shell({
             {label}
           </a>
         ))}
+        <ThemeToggle className="mobile-theme-toggle" />
       </nav>
     </main>
   );

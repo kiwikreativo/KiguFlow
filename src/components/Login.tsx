@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ArrowRight, LockKey } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Login() {
   const [error, setError] = useState("");
@@ -25,10 +26,11 @@ export function Login() {
     }
   }
   return (
-    <main className="grain relative grid min-h-screen overflow-hidden bg-[#010A04] p-5 text-white lg:grid-cols-[1.05fr_.95fr] lg:p-8">
+    <main className="login-page grain relative grid min-h-screen overflow-hidden bg-[#010A04] p-5 text-white lg:grid-cols-[1.05fr_.95fr] lg:p-8">
       <a href="/" className="absolute left-8 top-8 z-10 text-lg font-bold">
         KiguFlow
       </a>
+      <ThemeToggle className="absolute right-5 top-5 z-20 sm:right-8 sm:top-8" />
       <section className="relative hidden items-end overflow-hidden rounded-[8px] border border-white/10 bg-[linear-gradient(to_top,#010A04,transparent),url('https://picsum.photos/seed/vertex-access/1400/1600')] bg-cover bg-center p-14 grayscale contrast-125 lg:flex">
         <div className="max-w-xl">
           <p className="text-[4.7rem] font-semibold leading-[.9] tracking-[-.07em]">
