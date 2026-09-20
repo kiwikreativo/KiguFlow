@@ -1,4 +1,17 @@
+import { pbkdf2 } from 'node:crypto';
+
 const encoder = new TextEncoder();
+const PASSWORD_ITERATIONS = 310_000;
+const PASSWORD_KEY_BYTES = 32;
+
+function derivePassword(password: string, salt: string) {
+  return new Promise<Uint8Array>((resolve, reject) => {
+    pbkdf2(password, salt, PASSWORD_ITERATIONS, PASSWORD_KEY_BYTES, 'sha256', (error, key) => {
+      if (error) reject(error);
+      else resolve(key);
+    });
+  });
+}
 
 export function randomToken(bytes = 32) {
   const value = crypto.getRandomValues(new Uint8Array(bytes));
@@ -11,10 +24,12 @@ export async function sha256(value: string) {
 }
 
 export async function hashPassword(password: string, salt = randomToken(16)) {
-  const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: encoder.encode(salt), iterations: 310_000 }, key, 256);
-  const hash = [...new Uint8Array(bits)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `pbkdf2-sha256$310000$${salt}$${hash}`;
+  // Workers Web Crypto intentionally rejects PBKDF2 iteration counts above
+  // 100,000. node:crypto is native under nodejs_compat and produces the same
+  // PBKDF2-SHA256 bytes as the original local seeding implementation.
+  const bits = await derivePassword(password, salt);
+  const hash = [...bits].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `pbkdf2-sha256$${PASSWORD_ITERATIONS}$${salt}$${hash}`;
 }
 
 export async function verifyPassword(password: string, stored: string) {

@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
+import { routePath } from 'hono/route';
 import { zValidator } from '@hono/zod-validator';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm';
@@ -22,14 +23,31 @@ function rateLimited(key: string, limit = 10, windowMs = 60_000) { const now = D
 app.use('*', cors({ origin: (origin, c) => c.env.ALLOWED_ORIGINS.split(',').map((x: string) => x.trim()).includes(origin) ? origin : '', credentials: true }));
 app.use('*', database);
 app.use('*', trustedOrigin);
-app.onError((error, c) => { console.error('API request failed', c.env.ENVIRONMENT === 'development' ? `${error.name}: ${error.message}` : error.name); const databaseError = error as Error & { code?: string; constraint?: string }; if (databaseError.code === '23505' && databaseError.constraint === 'clients_email_normalized_idx') return fail(c, 409, 'CLIENT_EMAIL_EXISTS', 'A client with this email already exists.', { email: 'Email must be unique.' }); return fail(c, 500, 'INTERNAL_ERROR', 'The request could not be completed.'); });
+app.onError((error, c) => {
+  const operation = `${c.req.method} ${routePath(c)}`;
+  console.error(`[api] ${operation} failed`, {
+    error: error.name,
+    ...(c.env.ENVIRONMENT === 'development' ? { message: error.message } : {}),
+  });
+  const databaseError = error as Error & { code?: string; constraint?: string };
+  if (databaseError.code === '23505' && databaseError.constraint === 'clients_email_normalized_idx') return fail(c, 409, 'CLIENT_EMAIL_EXISTS', 'A client with this email already exists.', { email: 'Email must be unique.' });
+  return fail(c, 500, 'INTERNAL_ERROR', 'The request could not be completed.');
+});
 app.get('/health', (c) => ok(c, { status: 'ok' }));
 
 app.post('/auth/login', zValidator('json', loginSchema), async (c) => {
   if (rateLimited(`login:${c.req.header('CF-Connecting-IP') || 'local'}`, 8, 15 * 60_000)) return fail(c, 429, 'RATE_LIMITED', 'Too many login attempts. Try again later.');
   const { email, password } = c.req.valid('json');
   const account = (await c.get('db').select().from(users).where(eq(users.email, email.toLowerCase())).limit(1))[0];
-  if (!account || !(await verifyPassword(password, account.passwordHash))) return fail(c, 401, 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
+  if (!account) return fail(c, 401, 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
+  let passwordMatches = false;
+  try {
+    passwordMatches = await verifyPassword(password, account.passwordHash);
+  } catch (error) {
+    console.error('[auth/login] password verification failed', { error: error instanceof Error ? error.name : 'UnknownError' });
+    throw error;
+  }
+  if (!passwordMatches) return fail(c, 401, 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
   const raw = randomToken();
   await c.get('db').insert(sessions).values({ userId: account.id, tokenHash: await sha256(raw), expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14) });
   setCookie(c, 'kiguflow_session', raw, { httpOnly: true, secure: c.env.ENVIRONMENT === 'production', sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 14 });
@@ -165,7 +183,7 @@ app.post('/admin/projects/:projectId/brief', zValidator('param', z.object({ proj
 app.patch('/admin/briefs/:id', zValidator('param', z.object({ id })), zValidator('json', z.object({ status: z.enum(['not_started', 'in_progress', 'submitted', 'reviewed']) })), async (c) => { const [record] = await c.get('db').update(projectBriefs).set({ status: c.req.valid('json').status, updatedAt: new Date() }).where(eq(projectBriefs.id, c.req.valid('param').id)).returning(); return record ? ok(c, record) : fail(c, 404, 'BRIEF_NOT_FOUND', 'Brief was not found.'); });
 
 app.post('/admin/projects/:projectId/portal-token', zValidator('param', z.object({ projectId: id })), async (c) => { const raw = randomToken(); const projectId = c.req.valid('param').projectId; const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); const [record] = await c.get('db').insert(portalTokens).values({ projectId, tokenHash: await sha256(raw), expiresAt }).returning(); const origin = publicOrigin(c); return ok(c, { id: record.id, url: `${origin}/portal/${raw}`, expiresAt }, 201); });
-app.post('/admin/projects/:projectId/portal-invitation', zValidator('param', z.object({ projectId: id })), zValidator('json', z.object({ url: z.string().url() })), async (c) => { const project = (await c.get('db').select({ name: projects.name, clientName: clients.name, clientEmail: clients.email }).from(projects).innerJoin(clients, eq(projects.clientId, clients.id)).where(eq(projects.id, c.req.valid('param').projectId)).limit(1))[0]; if (!project) return fail(c, 404, 'PROJECT_NOT_FOUND', 'Project was not found.'); try { await sendPortalInvitation(c.env, { to: project.clientEmail, clientName: project.clientName, projectName: project.name, url: c.req.valid('json').url }); return ok(c, { success: true }); } catch { return fail(c, 500, 'EMAIL_DELIVERY_FAILED', 'The portal link was created, but Resend could not deliver the invitation.'); } });
+app.post('/admin/projects/:projectId/portal-invitation', zValidator('param', z.object({ projectId: id })), zValidator('json', z.object({ url: z.string().url() })), async (c) => { const invitationUrl = new URL(c.req.valid('json').url); const expectedOrigin = publicOrigin(c); if (invitationUrl.origin !== expectedOrigin || !invitationUrl.pathname.startsWith('/portal/')) return fail(c, 400, 'PORTAL_URL_INVALID', 'Use a portal link generated by this application.'); const project = (await c.get('db').select({ name: projects.name, clientName: clients.name, clientEmail: clients.email }).from(projects).innerJoin(clients, eq(projects.clientId, clients.id)).where(eq(projects.id, c.req.valid('param').projectId)).limit(1))[0]; if (!project) return fail(c, 404, 'PROJECT_NOT_FOUND', 'Project was not found.'); try { await sendPortalInvitation(c.env, { to: project.clientEmail, clientName: project.clientName, projectName: project.name, url: invitationUrl.href }); return ok(c, { success: true }); } catch (error) { console.error('[portal/invitation] email delivery failed', { error: error instanceof Error ? error.name : 'UnknownError' }); return fail(c, 500, 'EMAIL_DELIVERY_FAILED', 'The portal link was created, but Resend could not deliver the invitation.'); } });
 app.post('/admin/portal-tokens/:id/revoke', zValidator('param', z.object({ id })), async (c) => { const [record] = await c.get('db').update(portalTokens).set({ revokedAt: new Date() }).where(eq(portalTokens.id, c.req.valid('param').id)).returning(); return record ? ok(c, { success: true }) : fail(c, 404, 'PORTAL_TOKEN_NOT_FOUND', 'Portal link was not found.'); });
 
 async function resolvePortal(c: Context<{ Bindings: RuntimeEnv; Variables: Variables }>, raw: string) { const hash = await sha256(raw); return (await c.get('db').select({ projectId: portalTokens.projectId }).from(portalTokens).where(and(eq(portalTokens.tokenHash, hash), isNull(portalTokens.revokedAt), or(isNull(portalTokens.expiresAt), sql`${portalTokens.expiresAt} > NOW()`)!)).limit(1))[0]; }
