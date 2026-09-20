@@ -1,10 +1,10 @@
 name = "kiguflow"
 main = "src/worker.ts"
 compatibility_date = "2026-09-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = [ "nodejs_compat" ]
 
 [triggers]
-crons = ["0 18 * * *"]
+crons = [ "0 18 * * *" ]
 
 [assets]
 directory = "dist"
@@ -15,9 +15,9 @@ binding = "FILES"
 bucket_name = "kiguflow-files"
 
 [vars]
-APP_URL= "https://kiguflow.com"
-ALLOWED_ORIGINS="https://kiguflow.com"
+APP_URL = "https://kiguflow.com"
+ALLOWED_ORIGINS = "https://kiguflow.com"
 ENVIRONMENT = "production"
-R2_ACCOUNT_ID="843200bdff7ed1404df02b5f77eda556"
-R2_BUCKET_NAME="kiguflow-files"
-RESEND_FROM_EMAIL="notifications@kiguflow.com"
+R2_ACCOUNT_ID = "843200bdff7ed1404df02b5f77eda556"
+R2_BUCKET_NAME = "kiguflow-files"
+RESEND_FROM_EMAIL = "notifications@kiguflow.com"
