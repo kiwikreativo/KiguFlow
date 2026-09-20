@@ -40,7 +40,9 @@ type Project = {
   serviceType: string | null;
   status: string;
   dueDate: string | null;
+  clientId: string;
   clientName: string;
+  clientCompany: string | null;
   clientEmail: string;
   phases: Phase[];
   tasks: Task[];
@@ -52,10 +54,15 @@ type Project = {
   brief: {id:string;title:string;status:string}|null;
   portalTokens: Array<{id:string;expiresAt:string|null;revokedAt:string|null;createdAt:string}>;
 };
+type Client = { id: string; name: string; companyName: string | null; email: string };
 export function ProjectDetail({ id }: { id: string }) {
   const [data, setData] = useState<Project | null>(null),
-    [modal, setModal] = useState<"task" | "phase" | "invoice" | null>(null),
-    [briefTemplates,setBriefTemplates]=useState<Array<{id:string;name:string}>>([]);
+    [modal, setModal] = useState<"project" | "task" | "phase" | "invoice" | null>(null),
+    [briefTemplates,setBriefTemplates]=useState<Array<{id:string;name:string}>>([]),
+    [clients, setClients] = useState<Client[]>([]),
+    [inviteOpen, setInviteOpen] = useState(false),
+    [selectedClientId, setSelectedClientId] = useState(""),
+    [inviting, setInviting] = useState(false);
   const load = () =>
     api<Project>(`/admin/projects/${id}`)
       .then(setData)
@@ -63,6 +70,7 @@ export function ProjectDetail({ id }: { id: string }) {
   useEffect(() => {
     void load();
     void api<Array<{id:string;name:string}>>('/admin/brief-templates').then(setBriefTemplates);
+    void api<Client[]>('/admin/clients').then(setClients);
   }, [id]);
   const byPhase = useMemo(
     () =>
@@ -125,6 +133,18 @@ export function ProjectDetail({ id }: { id: string }) {
   async function updateTask(task: Task, patch: Partial<Task>) {
     await mutate(`/admin/tasks/${task.id}`, patch, "PATCH");
   }
+  async function updateProject(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    await mutate(`/admin/projects/${id}`, {
+      name: form.get("name"),
+      description: form.get("description") || null,
+      dueDate: form.get("dueDate") || null,
+    }, "PATCH");
+  }
+  async function updateInvoice(invoiceId: string, status: string) {
+    await mutate(`/admin/invoices/${invoiceId}`, { status }, "PATCH");
+  }
   async function deleteTask(task: Task) {
     if (confirm(`Delete “${task.title}”? This cannot be undone.`)) {
       await api(`/admin/tasks/${task.id}`, { method: "DELETE" });
@@ -140,8 +160,33 @@ export function ProjectDetail({ id }: { id: string }) {
     await navigator.clipboard.writeText(result.url);
     toast.success("Secure portal link copied");
   }
-  async function invite(){try{const result=await api<{url:string}>(`/admin/projects/${id}/portal-token`,{method:'POST'});await api(`/admin/projects/${id}/portal-invitation`,{method:'POST',body:JSON.stringify({url:result.url})});toast.success('Portal invitation sent')}catch(e){toast.error(e instanceof Error?e.message:'Invitation failed');load()}}
-  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const body=new FormData(e.currentTarget);try{await api(`/admin/projects/${id}/files`,{method:'POST',body});e.currentTarget.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
+  function openInvitation() {
+    setSelectedClientId(data?.clientId || "");
+    setInviteOpen(true);
+  }
+  async function invite() {
+    if (!data || !selectedClientId || inviting) return;
+    setInviting(true);
+    try {
+      if (selectedClientId !== data.clientId) {
+        await api(`/admin/projects/${id}/reassign`, {
+          method: "POST",
+          body: JSON.stringify({ clientId: selectedClientId }),
+        });
+      }
+      const result = await api<{ url: string }>(`/admin/projects/${id}/portal-token`, { method: "POST" });
+      await api(`/admin/projects/${id}/portal-invitation`, { method: "POST", body: JSON.stringify({ url: result.url }) });
+      await load();
+      setInviteOpen(false);
+      toast.success("Portal invitation sent");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Invitation failed");
+      await load();
+    } finally {
+      setInviting(false);
+    }
+  }
+  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget;const body=new FormData(form);try{await api(`/admin/projects/${id}/files`,{method:'POST',body});form.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
   async function filePatch(fileId:string,patch:unknown){await api(`/admin/files/${fileId}`,{method:'PATCH',body:JSON.stringify(patch)});load()}
   if (!data)
     return (
@@ -156,10 +201,43 @@ export function ProjectDetail({ id }: { id: string }) {
         <div className="flex gap-2"><button className="btn-secondary" onClick={portal}>
           <Copy />
           Copy portal link
-        </button><button className="btn-primary" onClick={invite}>Email invitation</button></div>
+        </button><button className="btn-primary" onClick={openInvitation}>Email invitation</button></div>
       }
     >
       <Toaster richColors />
+      {inviteOpen && (
+        <Modal title="Send portal invitation" onClose={() => !inviting && setInviteOpen(false)}>
+          <div className="grid gap-5">
+            <div className="assignment-summary rounded-xl border p-4">
+              <p className="text-xs font-semibold uppercase tracking-[.12em] text-[var(--ink-soft)]">Current assignment</p>
+              <p className="mt-2 font-semibold">{data.clientName}</p>
+              <p className="text-sm text-[var(--ink-soft)]">{data.clientCompany || "No company"}</p>
+              <p className="mt-2 text-sm">Invitation goes to {data.clientEmail}</p>
+            </div>
+            <label className="label">
+              Client
+              <select className="field" value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} disabled={inviting}>
+                {clients.map((client) => (
+                  <option value={client.id}>
+                    {[client.name, client.companyName, client.email].filter(Boolean).join(" — ")}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selectedClientId !== data.clientId && (
+              <div className="reassignment-warning rounded-xl border p-4 text-sm">
+                This permanently reassigns the project and revokes every existing portal link before sending the new invitation.
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button className="btn-secondary" onClick={() => setInviteOpen(false)} disabled={inviting}>Cancel</button>
+              <button className="btn-primary" onClick={invite} disabled={inviting || !selectedClientId}>
+                {inviting ? "Sending…" : selectedClientId !== data.clientId ? "Reassign and send" : "Confirm and send"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       <section className="grid gap-3 lg:grid-cols-[1.25fr_.75fr]">
         <div className="surface rounded-2xl p-6">
           <div className="flex items-start justify-between gap-4">
@@ -171,25 +249,28 @@ export function ProjectDetail({ id }: { id: string }) {
                 {data.description || "No description has been added."}
               </p>
             </div>
-            <select
-              aria-label="Project status"
-              value={data.status}
-              onChange={(e) =>
-                mutate(
-                  `/admin/projects/${id}`,
-                  { status: e.target.value },
-                  "PATCH",
-                )
-              }
-              className="field w-auto"
-            >
-              <option value="onboarding">Onboarding</option>
-              <option value="planning">Planning</option>
-              <option value="in_progress">In progress</option>
-              <option value="waiting_for_client">Waiting for client</option>
-              <option value="review">Review</option>
-              <option value="completed">Completed</option>
-            </select>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => setModal("project")} className="btn-secondary">Edit project</button>
+              <select
+                aria-label="Project status"
+                value={data.status}
+                onChange={(e) =>
+                  mutate(
+                    `/admin/projects/${id}`,
+                    { status: e.target.value },
+                    "PATCH",
+                  )
+                }
+                className="field w-auto"
+              >
+                <option value="onboarding">Onboarding</option>
+                <option value="planning">Planning</option>
+                <option value="in_progress">In progress</option>
+                <option value="waiting_for_client">Waiting for client</option>
+                <option value="review">Review</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
           </div>
           <div className="mt-10">
             <div className="mb-2 flex justify-between text-sm">
@@ -377,7 +458,19 @@ export function ProjectDetail({ id }: { id: string }) {
                       maximumFractionDigits: 0,
                     }).format(i.amountMinor)}
                   </strong>
-                  <p className="text-xs uppercase text-[#777]">{i.status}</p>
+                  <select
+                    aria-label={`Status for invoice ${i.invoiceNumber}`}
+                    value={i.status}
+                    onChange={(event) => updateInvoice(i.id, event.target.value)}
+                    className="field mt-2 py-1 text-xs uppercase"
+                  >
+                    {!['pending', 'half_paid', 'paid'].includes(i.status) && (
+                      <option value={i.status} disabled>{i.status.replaceAll('_', '-')}</option>
+                    )}
+                    <option value="pending">Pending</option>
+                    <option value="half_paid">Half-paid</option>
+                    <option value="paid">Paid</option>
+                  </select>
                 </div>
               </div>
             ))}
@@ -400,6 +493,25 @@ export function ProjectDetail({ id }: { id: string }) {
           </div>
         </div>
       </section>
+      {modal === "project" && (
+        <Modal title="Edit project" onClose={() => setModal(null)}>
+          <form onSubmit={updateProject} className="grid gap-4">
+            <label className="label">
+              Project name
+              <input name="name" defaultValue={data.name} minLength={2} maxLength={180} required className="field" />
+            </label>
+            <label className="label">
+              Description
+              <textarea name="description" defaultValue={data.description || ""} maxLength={5000} className="field" />
+            </label>
+            <label className="label">
+              Due date
+              <input name="dueDate" type="date" defaultValue={data.dueDate || ""} className="field" />
+            </label>
+            <button className="btn-primary">Save project</button>
+          </form>
+        </Modal>
+      )}
       {modal === "task" && (
         <Modal title="Add a project task" onClose={() => setModal(null)}>
           <form onSubmit={createTask} className="grid gap-4">
@@ -533,8 +645,8 @@ export function ProjectDetail({ id }: { id: string }) {
             <label className="label">
               Status
               <select name="status" className="field">
-                <option value="draft">Draft</option>
                 <option value="pending">Pending</option>
+                <option value="half_paid">Half-paid</option>
                 <option value="paid">Paid</option>
               </select>
             </label>
