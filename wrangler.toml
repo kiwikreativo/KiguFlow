@@ -2,6 +2,10 @@ name = "kiguflow"
 main = "src/worker.ts"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
+routes = [
+  { pattern = "kiguflow.com", custom_domain = true },
+  { pattern = "www.kiguflow.com", custom_domain = true }
+]
 
 [triggers]
 crons = ["0 18 * * *"]
@@ -15,6 +19,6 @@ binding = "FILES"
 bucket_name = "kiguflow-files"
 
 [vars]
-APP_URL = "http://localhost:8787"
-ALLOWED_ORIGINS = "http://localhost:8787,http://localhost:4321"
-ENVIRONMENT = "development"
+APP_URL = "https://kiguflow.com"
+ALLOWED_ORIGINS = "https://kiguflow.com,https://www.kiguflow.com"
+ENVIRONMENT = "production"
