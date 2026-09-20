@@ -14,7 +14,7 @@ export const taskPriority = pgEnum('task_priority', ['low', 'medium', 'high', 'u
 export const assigneeType = pgEnum('assignee_type', ['admin', 'client']);
 export const briefStatus = pgEnum('brief_status', ['not_started', 'in_progress', 'submitted', 'reviewed']);
 export const briefFieldType = pgEnum('brief_field_type', ['short_text', 'long_text', 'email', 'url', 'select', 'checkbox', 'file']);
-export const invoiceStatus = pgEnum('invoice_status', ['draft', 'pending', 'paid', 'overdue', 'cancelled']);
+export const invoiceStatus = pgEnum('invoice_status', ['draft', 'pending', 'half_paid', 'paid', 'overdue', 'cancelled']);
 export const documentStatus = pgEnum('document_status', ['pending', 'signed', 'completed']);
 
 export const users = pgTable('users', {
@@ -40,7 +40,7 @@ export const clients = pgTable('clients', {
   companyName: text('company_name'), email: text('email').notNull(), phone: text('phone'), website: text('website'), notes: text('notes'),
   status: clientStatus('status').notNull().default('active'),
   archivedAt: timestamp('archived_at', { withTimezone: true }), ...timestamps,
-}, (t) => [index('clients_status_idx').on(t.status), index('clients_name_idx').on(t.name)]);
+}, (t) => [index('clients_status_idx').on(t.status), index('clients_name_idx').on(t.name), uniqueIndex('clients_email_normalized_idx').on(sql`lower(trim(${t.email}))`)]);
 
 export const projectTemplates = pgTable('project_templates', {
   id: uuid('id').primaryKey().defaultRandom(), name: text('name').notNull(), description: text('description'), servicePackage: text('service_package'), isPackageDefault: boolean('is_package_default').notNull().default(false), ...timestamps,
@@ -70,8 +70,25 @@ export const tasks = pgTable('tasks', {
   phaseId: uuid('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }), title: text('title').notNull(), description: text('description'),
   status: taskStatus('status').notNull().default('todo'), priority: taskPriority('priority').notNull().default('medium'), assigneeType: assigneeType('assignee_type').notNull().default('admin'),
   dueDate: date('due_date'), sortOrder: integer('sort_order').notNull().default(0), clientVisible: boolean('client_visible').notNull().default(false),
-  requiresClientAction: boolean('requires_client_action').notNull().default(false), completedAt: timestamp('completed_at', { withTimezone: true }), ...timestamps,
+  requiresClientAction: boolean('requires_client_action').notNull().default(false), clientAssignedAt: timestamp('client_assigned_at', { withTimezone: true }), completedAt: timestamp('completed_at', { withTimezone: true }), ...timestamps,
 }, (t) => [index('tasks_project_idx').on(t.projectId), index('tasks_phase_idx').on(t.phaseId), index('tasks_status_due_idx').on(t.status, t.dueDate)]);
+
+export const notificationDeliveries = pgTable('notification_deliveries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventKey: text('event_key').notNull(),
+  kind: text('kind', { enum: ['task_assigned', 'task_due_soon', 'task_weekly_reminder', 'client_task_completed'] }).notNull(),
+  status: text('status', { enum: ['pending', 'sent', 'failed'] }).notNull().default('pending'),
+  recipient: text('recipient').notNull(),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'cascade' }),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  taskId: uuid('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  attemptCount: integer('attempt_count').notNull().default(0),
+  lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [uniqueIndex('notification_deliveries_event_key_idx').on(t.eventKey), index('notification_deliveries_pending_idx').on(t.status, t.attemptCount), index('notification_deliveries_project_idx').on(t.projectId)]);
 
 export const briefTemplates = pgTable('brief_templates', { id: uuid('id').primaryKey().defaultRandom(), name: text('name').notNull(), description: text('description'), ...timestamps });
 export const briefFields = pgTable('brief_fields', { id: uuid('id').primaryKey().defaultRandom(), templateId: uuid('template_id').notNull().references(() => briefTemplates.id, { onDelete: 'cascade' }), label: text('label').notNull(), type: briefFieldType('type').notNull(), required: boolean('required').notNull().default(false), options: jsonb('options').$type<string[]>(), sortOrder: integer('sort_order').notNull().default(0), ...timestamps });

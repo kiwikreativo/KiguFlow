@@ -10,12 +10,11 @@ export function resolvePublicOrigin(
   requestOrigin: string | undefined,
   allowedOrigins: string,
   fallbackUrl: string,
+  requestUrl?: string,
 ) {
   const fallback = normalizeOrigin(fallbackUrl);
   if (!fallback) throw new Error("APP_URL must be an absolute URL.");
 
-  if (!requestOrigin) return fallback;
-  const candidate = normalizeOrigin(requestOrigin);
   const allowed = new Set(
     allowedOrigins
       .split(",")
@@ -23,5 +22,9 @@ export function resolvePublicOrigin(
       .filter((value): value is string => Boolean(value)),
   );
 
-  return candidate && allowed.has(candidate) ? candidate : fallback;
+  const candidates = [requestOrigin, requestUrl]
+    .filter((value): value is string => Boolean(value))
+    .map(normalizeOrigin);
+
+  return candidates.find((candidate): candidate is string => Boolean(candidate && allowed.has(candidate))) ?? fallback;
 }

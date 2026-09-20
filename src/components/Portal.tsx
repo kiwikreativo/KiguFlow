@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Check,
+  CalendarBlank,
   DownloadSimple,
   File,
   LockKey,
@@ -65,7 +66,7 @@ export function Portal({ token }: { token: string }) {
       toast.error(e instanceof Error ? e.message : "Could not complete task");
     }
   }
-  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();try{await api(`/portal/${token}/files`,{method:'POST',body:new FormData(e.currentTarget)});e.currentTarget.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
+  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget;try{await api(`/portal/${token}/files`,{method:'POST',body:new FormData(form)});form.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
   async function saveBrief(element:HTMLFormElement,submit=false){if(!data?.brief)return;const form=new FormData(element);const responses=Object.fromEntries(data.brief.fieldsSnapshot.map(field=>[field.id,field.type==='checkbox'?form.get(field.id)==='on':form.get(field.id)||'']));try{await api(`/portal/${token}/brief`,{method:'PUT',body:JSON.stringify({responses,submit})});toast.success(submit?'Brief submitted':'Draft saved');load()}catch(x){toast.error(x instanceof Error?x.message:'Could not save brief')}}
   if (error)
     return (
@@ -93,6 +94,15 @@ export function Portal({ token }: { token: string }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <strong className="text-lg tracking-[-.04em] text-[#4ADE80]">KiguFlow</strong>
           <div className="flex items-center gap-3">
+            <a
+              href="https://calendly.com/guillermo-obandoc/45min"
+              target="_blank"
+              rel="noreferrer"
+              className="btn-primary px-3 py-2 text-sm"
+            >
+              <CalendarBlank />
+              Book a call
+            </a>
             <span className="hidden items-center gap-2 text-xs text-white/55 sm:flex">
               <LockKey />
               Private client portal
@@ -270,7 +280,7 @@ export function Portal({ token }: { token: string }) {
                         maximumFractionDigits: 0,
                       }).format(i.amountMinor)}
                     </strong>
-                    <p className="text-xs uppercase text-[#777]">{i.status}</p>
+                    <p className="text-xs uppercase text-[#777]">{i.status.replaceAll("_", "-")}</p>
                   </div>
                 </div>
               ))}

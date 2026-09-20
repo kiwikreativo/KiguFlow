@@ -45,7 +45,7 @@ export function Dashboard() {
       ]
     : [];
   return (
-    <Shell title="Good morning">
+    <Shell title="Welcome back">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ label, value, Icon }) => (
           <article className="surface rounded-2xl p-5">

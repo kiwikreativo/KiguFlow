@@ -48,6 +48,20 @@ button { cursor: pointer; }
 .btn-primary:hover { background: #6ee799; transform: translateY(-2px); }
 .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: .7rem 1rem; font-weight: 650; }
 .badge { display: inline-flex; align-items: center; border: 1px solid rgba(74,222,128,.28); border-radius: 999px; background: rgba(74,222,128,.1); color: var(--accent-text); padding: .25rem .55rem; font-size: .68rem; font-weight: 650; text-transform: capitalize; }
+.task-filter { --task-tone: var(--ink-soft); --task-fill: color-mix(in srgb, var(--task-tone) 15%, var(--surface)); border: 1px solid var(--task-tone); border-radius: 8px; background: transparent; color: var(--task-tone); padding: .55rem .8rem; font-size: .875rem; font-weight: 650; transition: color .18s ease, background .18s ease, transform .18s ease; }
+.task-filter:hover, .task-filter.is-active { background: var(--task-tone); color: #101310; transform: translateY(-1px); }
+.task-filter-all { --task-tone: var(--ink-soft); }
+.task-filter-todo { --task-tone: #c7cbc9; }
+.task-filter-progress { --task-tone: #f4cf5d; }
+.task-filter-waiting { --task-tone: #b58cff; }
+.task-filter-review { --task-tone: #f59f55; }
+.task-filter-completed { --task-tone: #32b66a; }
+:root[data-theme='light'] .task-filter-todo { --task-tone: #737b77; }
+:root[data-theme='light'] .task-filter-progress { --task-tone: #9a6b00; }
+:root[data-theme='light'] .task-filter-waiting { --task-tone: #7448bd; }
+:root[data-theme='light'] .task-filter-review { --task-tone: #a6530b; }
+:root[data-theme='light'] .task-filter-completed { --task-tone: #147a3e; }
+:root[data-theme='light'] .task-filter:hover, :root[data-theme='light'] .task-filter.is-active { color: #fff; }
 .assignment-summary { background: var(--surface-soft); border-color: var(--line); color: var(--ink); }
 .reassignment-warning { background: color-mix(in srgb, var(--accent-text) 10%, var(--surface-soft)); border-color: color-mix(in srgb, var(--accent-text) 42%, var(--line)); color: var(--ink); }
 .theme-toggle { display: flex; align-items: center; gap: .15rem; flex: none; padding: .2rem; border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--ink-soft); box-shadow: 0 5px 18px var(--shadow); }

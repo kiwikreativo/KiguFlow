@@ -57,7 +57,7 @@ type Project = {
 type Client = { id: string; name: string; companyName: string | null; email: string };
 export function ProjectDetail({ id }: { id: string }) {
   const [data, setData] = useState<Project | null>(null),
-    [modal, setModal] = useState<"task" | "phase" | "invoice" | null>(null),
+    [modal, setModal] = useState<"project" | "task" | "phase" | "invoice" | null>(null),
     [briefTemplates,setBriefTemplates]=useState<Array<{id:string;name:string}>>([]),
     [clients, setClients] = useState<Client[]>([]),
     [inviteOpen, setInviteOpen] = useState(false),
@@ -133,6 +133,18 @@ export function ProjectDetail({ id }: { id: string }) {
   async function updateTask(task: Task, patch: Partial<Task>) {
     await mutate(`/admin/tasks/${task.id}`, patch, "PATCH");
   }
+  async function updateProject(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    await mutate(`/admin/projects/${id}`, {
+      name: form.get("name"),
+      description: form.get("description") || null,
+      dueDate: form.get("dueDate") || null,
+    }, "PATCH");
+  }
+  async function updateInvoice(invoiceId: string, status: string) {
+    await mutate(`/admin/invoices/${invoiceId}`, { status }, "PATCH");
+  }
   async function deleteTask(task: Task) {
     if (confirm(`Delete “${task.title}”? This cannot be undone.`)) {
       await api(`/admin/tasks/${task.id}`, { method: "DELETE" });
@@ -174,7 +186,7 @@ export function ProjectDetail({ id }: { id: string }) {
       setInviting(false);
     }
   }
-  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const body=new FormData(e.currentTarget);try{await api(`/admin/projects/${id}/files`,{method:'POST',body});e.currentTarget.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
+  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget;const body=new FormData(form);try{await api(`/admin/projects/${id}/files`,{method:'POST',body});form.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
   async function filePatch(fileId:string,patch:unknown){await api(`/admin/files/${fileId}`,{method:'PATCH',body:JSON.stringify(patch)});load()}
   if (!data)
     return (
@@ -237,25 +249,28 @@ export function ProjectDetail({ id }: { id: string }) {
                 {data.description || "No description has been added."}
               </p>
             </div>
-            <select
-              aria-label="Project status"
-              value={data.status}
-              onChange={(e) =>
-                mutate(
-                  `/admin/projects/${id}`,
-                  { status: e.target.value },
-                  "PATCH",
-                )
-              }
-              className="field w-auto"
-            >
-              <option value="onboarding">Onboarding</option>
-              <option value="planning">Planning</option>
-              <option value="in_progress">In progress</option>
-              <option value="waiting_for_client">Waiting for client</option>
-              <option value="review">Review</option>
-              <option value="completed">Completed</option>
-            </select>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => setModal("project")} className="btn-secondary">Edit project</button>
+              <select
+                aria-label="Project status"
+                value={data.status}
+                onChange={(e) =>
+                  mutate(
+                    `/admin/projects/${id}`,
+                    { status: e.target.value },
+                    "PATCH",
+                  )
+                }
+                className="field w-auto"
+              >
+                <option value="onboarding">Onboarding</option>
+                <option value="planning">Planning</option>
+                <option value="in_progress">In progress</option>
+                <option value="waiting_for_client">Waiting for client</option>
+                <option value="review">Review</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
           </div>
           <div className="mt-10">
             <div className="mb-2 flex justify-between text-sm">
@@ -443,7 +458,19 @@ export function ProjectDetail({ id }: { id: string }) {
                       maximumFractionDigits: 0,
                     }).format(i.amountMinor)}
                   </strong>
-                  <p className="text-xs uppercase text-[#777]">{i.status}</p>
+                  <select
+                    aria-label={`Status for invoice ${i.invoiceNumber}`}
+                    value={i.status}
+                    onChange={(event) => updateInvoice(i.id, event.target.value)}
+                    className="field mt-2 py-1 text-xs uppercase"
+                  >
+                    {!['pending', 'half_paid', 'paid'].includes(i.status) && (
+                      <option value={i.status} disabled>{i.status.replaceAll('_', '-')}</option>
+                    )}
+                    <option value="pending">Pending</option>
+                    <option value="half_paid">Half-paid</option>
+                    <option value="paid">Paid</option>
+                  </select>
                 </div>
               </div>
             ))}
@@ -466,6 +493,25 @@ export function ProjectDetail({ id }: { id: string }) {
           </div>
         </div>
       </section>
+      {modal === "project" && (
+        <Modal title="Edit project" onClose={() => setModal(null)}>
+          <form onSubmit={updateProject} className="grid gap-4">
+            <label className="label">
+              Project name
+              <input name="name" defaultValue={data.name} minLength={2} maxLength={180} required className="field" />
+            </label>
+            <label className="label">
+              Description
+              <textarea name="description" defaultValue={data.description || ""} maxLength={5000} className="field" />
+            </label>
+            <label className="label">
+              Due date
+              <input name="dueDate" type="date" defaultValue={data.dueDate || ""} className="field" />
+            </label>
+            <button className="btn-primary">Save project</button>
+          </form>
+        </Modal>
+      )}
       {modal === "task" && (
         <Modal title="Add a project task" onClose={() => setModal(null)}>
           <form onSubmit={createTask} className="grid gap-4">
@@ -599,8 +645,8 @@ export function ProjectDetail({ id }: { id: string }) {
             <label className="label">
               Status
               <select name="status" className="field">
-                <option value="draft">Draft</option>
                 <option value="pending">Pending</option>
+                <option value="half_paid">Half-paid</option>
                 <option value="paid">Paid</option>
               </select>
             </label>
