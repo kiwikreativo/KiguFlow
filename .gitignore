@@ -6,6 +6,7 @@ dist-worker/
 .env
 .env.*
 !.env.example
+.local-backups/
 coverage/
 *.log
 .DS_Store

@@ -15,6 +15,10 @@ binding = "FILES"
 bucket_name = "kiguflow-files"
 
 [vars]
-APP_URL = "http://localhost:8787"
-ALLOWED_ORIGINS = "http://localhost:8787,http://localhost:4321"
-ENVIRONMENT = "development"
+APP_URL= "https://kiguflow.com"
+ALLOWED_ORIGINS="https://kiguflow.com"
+ENVIRONMENT = "production"
+R2_ACCOUNT_ID="843200bdff7ed1404df02b5f77eda556"
+R2_BUCKET_NAME="kiguflow-files"
+APP_URL="https://kiguflow.com"
+RESEND_FROM_EMAIL="notifications@kiguflow.com"
