@@ -7,7 +7,10 @@ const PASSWORD_KEY_BYTES = 32;
 function derivePassword(password: string, salt: string) {
   return new Promise<Uint8Array>((resolve, reject) => {
     pbkdf2(password, salt, PASSWORD_ITERATIONS, PASSWORD_KEY_BYTES, 'sha256', (error, key) => {
-      if (error) reject(error);
+      if (error) {
+        console.error('[security/password] derive PBKDF2 bytes failed', { error: error.name || 'Error' });
+        reject(error);
+      }
       else resolve(key);
     });
   });
@@ -33,8 +36,14 @@ export async function hashPassword(password: string, salt = randomToken(16)) {
 }
 
 export async function verifyPassword(password: string, stored: string) {
-  const [, , salt] = stored.split('$');
-  if (!salt) return false;
+  const [algorithm, iterations, salt, derivedKey] = stored.split('$');
+  if (
+    algorithm !== 'pbkdf2-sha256'
+    || iterations !== String(PASSWORD_ITERATIONS)
+    || !salt
+    || !derivedKey
+    || !/^[0-9a-f]{64}$/.test(derivedKey)
+  ) return false;
   const candidate = await hashPassword(password, salt);
   if (candidate.length !== stored.length) return false;
   let difference = 0;
