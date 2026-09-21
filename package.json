@@ -9,6 +9,7 @@
     "build": "astro check && astro build",
     "check": "astro check && tsc --noEmit",
     "test": "vitest run",
+    "test:worker-security": "tsx scripts/test-worker-security.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",

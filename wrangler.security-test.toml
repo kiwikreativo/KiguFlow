@@ -1,0 +1,4 @@
+name = "kiguflow-security-runtime-test"
+main = "src/server/security.worker-test.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
