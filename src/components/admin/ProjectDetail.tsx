@@ -319,8 +319,8 @@ export function ProjectDetail({ id }: { id: string }) {
         <div className="grid gap-4">
           {data.phases.map((phase) => (
             <article className="surface rounded-2xl">
-              <header className="flex items-center justify-between border-b border-[#deddd6] px-5 py-4">
-                <div>
+              <header className="flex items-center justify-between gap-4 border-b border-[#deddd6] px-5 py-4">
+                <div className="min-w-0 flex-1">
                   <h3 className="font-semibold">{phase.name}</h3>
                   <p className="text-xs text-[#777]">
                     {byPhase[phase.id]?.filter((t) => t.status === "completed")
@@ -338,7 +338,7 @@ export function ProjectDetail({ id }: { id: string }) {
                       "PATCH",
                     )
                   }
-                  className="field w-auto text-sm"
+                  className="field w-auto max-w-[50%] shrink-0 text-sm"
                 >
                   <option value="not_started">Not started</option>
                   <option value="active">Active</option>

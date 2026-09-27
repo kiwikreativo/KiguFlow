@@ -74,7 +74,7 @@ export function Clients() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="field pl-10"
+              className="field field-search"
               placeholder="Search name, company, or email"
             />
           </label>
