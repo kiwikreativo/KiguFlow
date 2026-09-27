@@ -156,12 +156,17 @@ export function ProjectDetail({ id }: { id: string }) {
     }
   }
   async function portal() {
-    const result = await api<{ url: string }>(
-      `/admin/projects/${id}/portal-token`,
-      { method: "POST" },
-    );
-    await navigator.clipboard.writeText(result.url);
-    toast.success("Secure portal link copied");
+    try {
+      const result = await api<{ url: string }>(
+        `/admin/projects/${id}/portal-token`,
+        { method: "POST" },
+      );
+      await navigator.clipboard.writeText(result.url);
+      toast.success("Secure portal link copied");
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not copy portal link");
+    }
   }
   function openInvitation() {
     setSelectedClientId(data?.clientId || "");
