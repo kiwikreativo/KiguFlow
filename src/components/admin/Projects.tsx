@@ -4,7 +4,6 @@ import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
-import { SERVICE_PACKAGES } from "@/lib/project-options";
 type Project = {
   id: string;
   name: string;
@@ -15,10 +14,12 @@ type Project = {
 };
 type Client = { id: string; name: string; companyName: string | null; email: string };
 type Template = { id: string; name: string };
+type Catalog = { services: Array<{id:string;name:string}>; bundles:Array<{id:string;name:string;serviceIds:string[]}> };
 export function Projects() {
   const [rows, setRows] = useState<Project[]>([]),
     [clients, setClients] = useState<Client[]>([]),
     [templates, setTemplates] = useState<Template[]>([]),
+    [catalog, setCatalog] = useState<Catalog>({services:[],bundles:[]}),
     [open, setOpen] = useState(false),
     [creating, setCreating] = useState(false);
   const load = () =>
@@ -26,11 +27,13 @@ export function Projects() {
       api<Project[]>("/admin/projects"),
       api<Client[]>("/admin/clients"),
       api<Template[]>("/admin/templates"),
+      api<Catalog>("/admin/service-catalog"),
     ])
-      .then(([a, b, c]) => {
+      .then(([a, b, c, d]) => {
         setRows(a);
         setClients(b);
         setTemplates(c);
+        setCatalog(d);
       })
       .catch(() => (location.href = "/login"));
   useEffect(() => {
@@ -125,10 +128,15 @@ export function Projects() {
               <input name="name" className="field" required />
             </label>
             <label className="label">
-              Service type
+              Service / bundle
               <select name="serviceType" className="field" required>
-                <option value="">Choose a service</option>
-                {SERVICE_PACKAGES.map((service) => <option value={service}>{service}</option>)}
+                <option value="">Choose a service or bundle</option>
+                <optgroup label="Services">
+                  {catalog.services.map((service) => <option value={service.name}>{service.name}</option>)}
+                </optgroup>
+                <optgroup label="Bundles">
+                  {catalog.bundles.map((bundle) => <option value={bundle.name}>{bundle.name}</option>)}
+                </optgroup>
               </select>
             </label>
             <label className="label">

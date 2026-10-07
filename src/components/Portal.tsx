@@ -10,6 +10,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
+import { translator, translateStatus, type Language } from '@/i18n';
 type PortalData = {
   id: string;
   name: string;
@@ -18,6 +19,7 @@ type PortalData = {
   status: string;
   dueDate: string | null;
   progress: number;
+  preferredLanguage: Language;
   phases: Array<{ id: string; name: string; status: string }>;
   tasks: Array<{
     id: string;
@@ -43,7 +45,6 @@ type PortalData = {
     size: number;
   }>;
   activity: Array<{ id: string; summary: string; createdAt: string }>;
-  brief: {id:string;title:string;status:string;fieldsSnapshot:Array<{id:string;label:string;type:string;required:boolean;options?:string[]}>;responses:Array<{fieldId:string;value:unknown}>}|null;
 };
 export function Portal({ token }: { token: string }) {
   const [data, setData] = useState<PortalData | null>(null),
@@ -51,29 +52,28 @@ export function Portal({ token }: { token: string }) {
   const load = () =>
     api<PortalData>(`/portal/${token}`)
       .then(setData)
-      .catch((e) =>
-        setError(e instanceof Error ? e.message : "Portal unavailable"),
-      );
+      .catch(() => setError(translator('en')('portalError')));
   useEffect(() => {
     void load();
   }, [token]);
+  const language=data?.preferredLanguage||'en';
+  const t=translator(language);
   async function complete(id: string) {
     try {
       await api(`/portal/${token}/tasks/${id}/complete`, { method: "POST" });
-      toast.success("Task completed");
+      toast.success(t("taskCompleted"));
       load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not complete task");
+      toast.error(t("completeError"));
     }
   }
-  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget;try{await api(`/portal/${token}/files`,{method:'POST',body:new FormData(form)});form.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
-  async function saveBrief(element:HTMLFormElement,submit=false){if(!data?.brief)return;const form=new FormData(element);const responses=Object.fromEntries(data.brief.fieldsSnapshot.map(field=>[field.id,field.type==='checkbox'?form.get(field.id)==='on':form.get(field.id)||'']));try{await api(`/portal/${token}/brief`,{method:'PUT',body:JSON.stringify({responses,submit})});toast.success(submit?'Brief submitted':'Draft saved');load()}catch(x){toast.error(x instanceof Error?x.message:'Could not save brief')}}
+  async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget;try{await api(`/portal/${token}/files`,{method:'POST',body:new FormData(form)});form.reset();toast.success(t('fileUploaded'));load()}catch{toast.error(t('uploadError'))}}
   if (error)
     return (
       <main className="grid min-h-screen place-items-center bg-[var(--paper)] p-6 text-[var(--ink)]">
         <div className="max-w-md text-center">
           <WarningCircle className="mx-auto" size={42} />
-          <h1 className="mt-5 text-3xl font-semibold">Portal unavailable</h1>
+          <h1 className="mt-5 text-3xl font-semibold">{t('portalUnavailable')}</h1>
           <p className="mt-3 text-white/60">{error}</p>
         </div>
       </main>
@@ -81,11 +81,11 @@ export function Portal({ token }: { token: string }) {
   if (!data)
     return (
       <main className="grid min-h-screen place-items-center bg-[var(--paper)] text-[var(--ink)]">
-        Loading your project…
+        {t('loading')}
       </main>
     );
   const actions = data.tasks.filter(
-    (t) => t.requiresClientAction && t.status !== "completed",
+    (task) => task.requiresClientAction && task.status !== "completed",
   );
   return (
     <main className="client-portal min-h-screen bg-[#010A04] pb-24 text-white">
@@ -101,25 +101,25 @@ export function Portal({ token }: { token: string }) {
               className="btn-primary px-3 py-2 text-sm"
             >
               <CalendarBlank />
-              Book a call
+              {t('bookCall')}
             </a>
             <span className="hidden items-center gap-2 text-xs text-white/55 sm:flex">
               <LockKey />
-              Private client portal
+              {t('privatePortal')}
             </span>
             <ThemeToggle />
           </div>
         </div>
       </header>
       <div className="mx-auto max-w-6xl px-5 py-10 md:py-16">
-        <p className="text-sm text-[#737a76]">Welcome, {data.clientName}</p>
+        <p className="text-sm text-[#737a76]">{t('welcome')}, {data.clientName}</p>
         <h1 className="mt-2 max-w-4xl text-[clamp(2.7rem,7vw,6.5rem)] font-semibold leading-[.92] tracking-[-.065em]">
           {data.name}
         </h1>
         <section className="mt-12 grid gap-3 md:grid-cols-[1.25fr_.75fr]">
           <div className="rounded-[8px] border border-[#4ADE80]/25 bg-[#4ADE80] p-6 text-[#010A04] md:p-9">
             <div className="flex justify-between">
-              <span className="text-sm font-semibold">Project progress</span>
+              <span className="text-sm font-semibold">{t('projectProgress')}</span>
               <strong className="text-3xl">{data.progress}%</strong>
             </div>
             <div className="mt-16 h-3 overflow-hidden rounded-full bg-[#17201d]/15">
@@ -129,50 +129,50 @@ export function Portal({ token }: { token: string }) {
               />
             </div>
             <p className="mt-4 text-sm text-[#39443f]">
-              Progress is calculated from completed project tasks.
+              {t('progressHelp')}
             </p>
           </div>
           <div className="rounded-[8px] border border-white/10 bg-[#191C21] p-6 text-white md:p-9">
-            <p className="text-sm text-white/50">Current status</p>
+            <p className="text-sm text-white/50">{t('currentStatus')}</p>
             <p className="mt-2 text-2xl font-semibold capitalize">
-              {data.status.replaceAll("_", " ")}
+              {translateStatus(language,data.status)}
             </p>
-            <p className="mt-10 text-sm text-white/50">Next date</p>
+            <p className="mt-10 text-sm text-white/50">{t('nextDate')}</p>
             <p className="mt-1 font-semibold">
               {data.dueDate
-                ? new Date(`${data.dueDate}T00:00:00`).toLocaleDateString()
-                : "To be confirmed"}
+                ? new Date(`${data.dueDate}T00:00:00`).toLocaleDateString(language)
+                : t('toBeConfirmed')}
             </p>
           </div>
         </section>
         {actions.length > 0 && (
           <section className="mt-10 rounded-[8px] border border-[#4ADE80]/25 bg-[#4ADE80]/[.07] p-6 md:p-9">
             <h2 className="text-2xl font-semibold tracking-[-.04em]">
-              Your attention is needed
+              {t('attentionNeeded')}
             </h2>
             <p className="mt-2 text-[#6c6254]">
               {actions.length}{" "}
-              {actions.length === 1 ? "item needs" : "items need"} your input.
+              {actions.length === 1 ? t('itemNeeds') : t('itemsNeed')} {t('yourInput')}
             </p>
             <div className="mt-6 grid gap-3">
-              {actions.map((t) => (
+              {actions.map((task) => (
                 <article className="flex flex-col justify-between gap-4 rounded-[8px] border border-white/10 bg-[#191C21] p-5 sm:flex-row sm:items-center">
                   <div>
-                    <strong>{t.title}</strong>
-                    {t.dueDate && (
+                    <strong>{task.title}</strong>
+                    {task.dueDate && (
                       <p className="text-sm text-[#777]">
-                        Due{" "}
-                        {new Date(`${t.dueDate}T00:00:00`).toLocaleDateString()}
+                        {t('due')}{" "}
+                        {new Date(`${task.dueDate}T00:00:00`).toLocaleDateString(language)}
                       </p>
                     )}
                   </div>
-                  {t.assigneeType === "client" && (
+                  {task.assigneeType === "client" && (
                     <button
-                      onClick={() => complete(t.id)}
+                      onClick={() => complete(task.id)}
                       className="btn-primary"
                     >
                       <Check />
-                      Mark complete
+                      {t('markComplete')}
                     </button>
                   )}
                 </article>
@@ -183,10 +183,10 @@ export function Portal({ token }: { token: string }) {
         <section className="mt-16 grid gap-10 lg:grid-cols-[.8fr_1.2fr]">
           <div>
             <h2 className="text-3xl font-semibold tracking-[-.045em]">
-              Project timeline
+              {t('projectTimeline')}
             </h2>
             <p className="mt-3 text-[#6e7571]">
-              A clear view of where the project stands.
+              {t('timelineHelp')}
             </p>
           </div>
           <div className="grid gap-2">
@@ -199,7 +199,7 @@ export function Portal({ token }: { token: string }) {
                 </span>
                 <strong>{p.name}</strong>
                 <span className="ml-auto text-xs capitalize text-[#777]">
-                  {p.status.replaceAll("_", " ")}
+                  {translateStatus(language,p.status)}
                 </span>
               </div>
             ))}
@@ -207,34 +207,34 @@ export function Portal({ token }: { token: string }) {
         </section>
         <section className="mt-20">
           <h2 className="text-3xl font-semibold tracking-[-.045em]">
-            Visible project tasks
+            {t('visibleTasks')}
           </h2>
           <div className="surface mt-6 divide-y divide-[#deddd6] rounded-2xl">
-            {data.tasks.map((t) => (
+            {data.tasks.map((task) => (
               <div className="flex items-center gap-4 p-5">
                 <span
-                  className={`grid h-7 w-7 place-items-center rounded-full border ${t.status === "completed" ? "bg-[#77953b] text-white" : "border-[#aaa]"}`}
+                  className={`grid h-7 w-7 place-items-center rounded-full border ${task.status === "completed" ? "bg-[#77953b] text-white" : "border-[#aaa]"}`}
                 >
-                  {t.status === "completed" && <Check />}
+                  {task.status === "completed" && <Check />}
                 </span>
                 <div>
                   <strong
                     className={
-                      t.status === "completed" ? "line-through opacity-60" : ""
+                      task.status === "completed" ? "line-through opacity-60" : ""
                     }
                   >
-                    {t.title}
+                    {task.title}
                   </strong>
                   <p className="text-xs capitalize text-[#777]">
-                    {t.status.replaceAll("_", " ")}
+                    {translateStatus(language,task.status)}
                   </p>
                 </div>
-                {t.assigneeType === "client" && t.status !== "completed" && (
+                {task.assigneeType === "client" && task.status !== "completed" && (
                   <button
-                    onClick={() => complete(t.id)}
+                    onClick={() => complete(task.id)}
                     className="btn-secondary ml-auto"
                   >
-                    Complete
+                    {t('complete')}
                   </button>
                 )}
               </div>
@@ -243,7 +243,7 @@ export function Portal({ token }: { token: string }) {
         </section>
         <section className="mt-20 grid gap-4 md:grid-cols-2">
           <div className="surface rounded-3xl p-6">
-            <h2 className="text-2xl font-semibold">Files</h2>
+            <h2 className="text-2xl font-semibold">{t('files')}</h2>
             <div className="mt-5 divide-y divide-[#ddd]">
               {data.files.map((f) => (
                 <div className="flex items-center gap-3 py-4">
@@ -254,17 +254,17 @@ export function Portal({ token }: { token: string }) {
                     </strong>
                     <span className="text-xs text-[#777]">{f.category}</span>
                   </div>
-                  <a href={`/api/portal/${token}/files/${f.id}/download`} aria-label={`Download ${f.filename}`}><DownloadSimple /></a>
+                  <a href={`/api/portal/${token}/files/${f.id}/download`} aria-label={`${t('download')} ${f.filename}`}><DownloadSimple /></a>
                 </div>
               ))}
               {!data.files.length && (
-                <p className="py-8 text-sm text-[#777]">No shared files yet.</p>
+                <p className="py-8 text-sm text-[#777]">{t('noFiles')}</p>
               )}
             </div>
-            <form onSubmit={upload} className="mt-5 grid gap-3 border-t border-white/10 pt-5"><input className="field" type="file" name="file" required/><input className="field" name="category" defaultValue="Client uploads"/><button className="btn-secondary">Upload a file</button></form>
+            <form onSubmit={upload} className="mt-5 grid gap-3 border-t border-white/10 pt-5"><input className="field" type="file" name="file" required/><input className="field" name="category" defaultValue={t('clientUploads')}/><button className="btn-secondary">{t('uploadFile')}</button></form>
           </div>
           <div className="surface rounded-3xl p-6">
-            <h2 className="text-2xl font-semibold">Invoices</h2>
+            <h2 className="text-2xl font-semibold">{t('invoices')}</h2>
             <div className="mt-5 divide-y divide-[#ddd]">
               {data.invoices.map((i) => (
                 <div className="flex justify-between py-4">
@@ -280,17 +280,16 @@ export function Portal({ token }: { token: string }) {
                         maximumFractionDigits: 0,
                       }).format(i.amountMinor)}
                     </strong>
-                    <p className="text-xs uppercase text-[#777]">{i.status.replaceAll("_", "-")}</p>
+                    <p className="text-xs uppercase text-[#777]">{translateStatus(language,i.status)}</p>
                   </div>
                 </div>
               ))}
               {!data.invoices.length && (
-                <p className="py-8 text-sm text-[#777]">No invoices to show.</p>
+                <p className="py-8 text-sm text-[#777]">{t('noInvoices')}</p>
               )}
             </div>
           </div>
         </section>
-        {data.brief&&<section className="surface mt-20 rounded-2xl p-6 md:p-9"><div className="flex justify-between"><h2 className="text-3xl font-semibold">{data.brief.title}</h2><span className="badge">{data.brief.status.replaceAll('_',' ')}</span></div><form className="mt-8 grid gap-5" onSubmit={e=>{e.preventDefault();void saveBrief(e.currentTarget,false)}}>{data.brief.fieldsSnapshot.map(field=>{const value=data.brief?.responses.find(r=>r.fieldId===field.id)?.value;return <label className="label">{field.label}{field.required?' *':''}{field.type==='long_text'?<textarea className="field min-h-28" name={field.id} defaultValue={String(value||'')} required={field.required}/>:field.type==='select'?<select className="field" name={field.id} defaultValue={String(value||'')} required={field.required}><option value="">Choose…</option>{field.options?.map(x=><option value={x}>{x}</option>)}</select>:field.type==='checkbox'?<input type="checkbox" name={field.id} defaultChecked={value===true}/>:field.type==='file'?<p className="text-sm text-[#777]">Upload this file in the Files section and use the requested category.</p>:<input className="field" name={field.id} type={field.type==='email'?'email':field.type==='url'?'url':'text'} defaultValue={String(value||'')} required={field.required}/>}</label>})}<div className="flex gap-3"><button className="btn-secondary">Save draft</button><button className="btn-primary" type="button" onClick={e=>{if(e.currentTarget.form)void saveBrief(e.currentTarget.form,true)}}>Submit brief</button></div></form></section>}
       </div>
     </main>
   );

@@ -7,7 +7,7 @@ import {
   SquaresFour,
   UsersThree,
 } from "@phosphor-icons/react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -28,6 +28,29 @@ export function Shell({
   action?: ReactNode;
 }) {
   const path = typeof window === "undefined" ? "" : window.location.pathname;
+  useEffect(() => {
+    const timeoutMs = 10 * 60 * 1000;
+    let timeout = 0;
+    let lastTouch = 0;
+    const expire = async () => {
+      try { await api('/auth/logout', { method: 'POST' }); } finally {
+        location.href = '/login?reason=inactive';
+      }
+    };
+    const activity = () => {
+      window.clearTimeout(timeout);
+      timeout = window.setTimeout(expire, timeoutMs);
+      const now = Date.now();
+      if (now - lastTouch > 60_000) {
+        lastTouch = now;
+        void api('/admin/session/activity', { method: 'POST' }).catch(() => undefined);
+      }
+    };
+    const events: Array<keyof WindowEventMap> = ['click', 'keydown', 'touchstart', 'pointerdown', 'input', 'popstate'];
+    events.forEach((event) => window.addEventListener(event, activity, { passive: true }));
+    activity();
+    return () => { window.clearTimeout(timeout); events.forEach((event) => window.removeEventListener(event, activity)); };
+  }, []);
   return (
     <main className="app-shell min-h-screen bg-[#010A04] text-white md:grid md:grid-cols-[248px_1fr]">
       <aside className="hidden min-h-screen flex-col border-r border-white/10 bg-[#050f08] p-5 text-white md:fixed md:flex md:w-[248px]">

@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Login() {
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('reason') === 'inactive' ? 'Your session expired after 10 minutes of inactivity. Please sign in again.' : "");
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

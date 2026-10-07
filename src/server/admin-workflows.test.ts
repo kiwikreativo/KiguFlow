@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { invoiceSchema, invoiceStatusUpdateSchema, taskListQuerySchema } from '../schemas/api';
+import { BUNDLE_SERVICES, SERVICE_BUNDLES, SERVICE_PACKAGES } from '../lib/project-options';
 
 describe('admin workflow validation', () => {
   it('accepts half-paid invoice updates while retaining legacy statuses', () => {
@@ -21,5 +22,33 @@ describe('admin workflow validation', () => {
     const query = { status: 'review', projectId: 'dff1602f-6482-427e-b10d-b91fe6facea3' };
     expect(taskListQuerySchema.parse(query)).toEqual(query);
     expect(taskListQuerySchema.safeParse({ ...query, projectId: 'not-a-project' }).success).toBe(false);
+  });
+
+  it('uses a ten-minute inactivity window', () => {
+    const source = readFileSync(fileURLToPath(new URL('./middleware.ts', import.meta.url)), 'utf8');
+    expect(source).toContain('10 * 60 * 1000');
+    expect(source).toContain("'SESSION_INACTIVE'");
+  });
+
+  it('keeps Geographic SEO standalone and models all four bundles by component service', () => {
+    expect(SERVICE_PACKAGES).toContain('Geographic SEO');
+    expect(SERVICE_PACKAGES).toContain('Local SEO');
+    expect(SERVICE_BUNDLES).toHaveLength(4);
+    expect(BUNDLE_SERVICES['Local SEO + Geographic SEO']).toEqual(['Local SEO','Geographic SEO']);
+  });
+
+  it('does not expose a client portal brief endpoint or payload query', () => {
+    const source = readFileSync(fileURLToPath(new URL('./app.ts', import.meta.url)), 'utf8');
+    expect(source).not.toContain("app.put('/portal/:token/brief'");
+    const portalHandler=source.slice(source.indexOf("app.get('/portal/:token'"),source.indexOf("app.post('/portal/:token/tasks"));
+    expect(portalHandler).not.toContain('briefResponses');
+    expect(portalHandler).not.toContain('projectBriefs');
+  });
+
+  it('keeps legacy brief seed definitions and adds Geographic SEO without destructive writes', () => {
+    const seed = readFileSync(fileURLToPath(new URL('../../scripts/seed.ts', import.meta.url)), 'utf8');
+    for(const name of ['Website Development Brief','Website Redesign Brief','Local SEO Brief']) expect(seed).toContain(name);
+    expect(seed).toContain('Geographic SEO Brief');
+    expect(seed).not.toMatch(/delete\(briefTemplates\)|delete\(briefFields\)/);
   });
 });

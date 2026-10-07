@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Check, ClipboardText, Copy, Plus, Trash } from "@phosphor-icons/react";
+import { Check, Copy, Plus, Trash } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
 import { Shell } from "./Shell";
@@ -55,17 +55,20 @@ type Project = {
   portalTokens: Array<{id:string;expiresAt:string|null;revokedAt:string|null;createdAt:string}>;
 };
 type Client = { id: string; name: string; companyName: string | null; email: string };
+type BriefField={id:string;label:string;type:string;required:boolean;options?:string[]};
+type Brief={id:string;title:string;status:string;submittedAt:string|null;fieldsSnapshot:BriefField[];responses:Array<{fieldId:string;value:unknown}>};
 export function ProjectDetail({ id }: { id: string }) {
   const [data, setData] = useState<Project | null>(null),
     [modal, setModal] = useState<"project" | "task" | "phase" | "invoice" | null>(null),
     [briefTemplates,setBriefTemplates]=useState<Array<{id:string;name:string}>>([]),
+    [briefs,setBriefs]=useState<Brief[]>([]),
     [clients, setClients] = useState<Client[]>([]),
     [inviteOpen, setInviteOpen] = useState(false),
     [selectedClientId, setSelectedClientId] = useState(""),
     [inviting, setInviting] = useState(false);
   const load = () =>
-    api<Project>(`/admin/projects/${id}`)
-      .then(setData)
+    Promise.all([api<Project>(`/admin/projects/${id}`),api<Brief[]>(`/admin/projects/${id}/brief`)])
+      .then(([project,projectBriefs])=>{setData(project);setBriefs(projectBriefs)})
       .catch(() => (location.href = "/projects"));
   useEffect(() => {
     void load();
@@ -153,12 +156,17 @@ export function ProjectDetail({ id }: { id: string }) {
     }
   }
   async function portal() {
-    const result = await api<{ url: string }>(
-      `/admin/projects/${id}/portal-token`,
-      { method: "POST" },
-    );
-    await navigator.clipboard.writeText(result.url);
-    toast.success("Secure portal link copied");
+    try {
+      const result = await api<{ url: string }>(
+        `/admin/projects/${id}/portal-token`,
+        { method: "POST" },
+      );
+      await navigator.clipboard.writeText(result.url);
+      toast.success("Secure portal link copied");
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not copy portal link");
+    }
   }
   function openInvitation() {
     setSelectedClientId(data?.clientId || "");
@@ -188,6 +196,9 @@ export function ProjectDetail({ id }: { id: string }) {
   }
   async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget;const body=new FormData(form);try{await api(`/admin/projects/${id}/files`,{method:'POST',body});form.reset();toast.success('File uploaded');load()}catch(x){toast.error(x instanceof Error?x.message:'Upload failed')}}
   async function filePatch(fileId:string,patch:unknown){await api(`/admin/files/${fileId}`,{method:'PATCH',body:JSON.stringify(patch)});load()}
+  function briefResponses(brief:Brief,form:HTMLFormElement){const data=new FormData(form);return Object.fromEntries(brief.fieldsSnapshot.map(field=>[field.id,field.type==='checkbox'?data.get(field.id)==='on':data.get(field.id)||'']))}
+  async function saveBrief(brief:Brief,form:HTMLFormElement,finalize=false){try{const responses=briefResponses(brief,form);await api(`/admin/briefs/${brief.id}/${finalize?'finalize':'draft'}`,{method:finalize?'POST':'PUT',body:JSON.stringify({responses})});toast.success(finalize?'Brief finalized.':'Draft saved.');load()}catch(error){toast.error(error instanceof Error?error.message:'Could not save brief')}}
+  async function reopenBrief(brief:Brief){if(!confirm('Reopen this brief? The brief will become editable again and must be finalized once changes are complete.'))return;await api(`/admin/briefs/${brief.id}/reopen`,{method:'POST'});toast.success('Brief reopened.');load()}
   if (!data)
     return (
       <Shell title="Loading project…">
@@ -430,7 +441,7 @@ export function ProjectDetail({ id }: { id: string }) {
         </div>
       </section>
       <section className="mt-10 grid gap-4 lg:grid-cols-2">
-        <div className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Client brief</h2>{data.brief?<div className="mt-4 flex items-center justify-between"><div><strong>{data.brief.title}</strong><p className="text-sm capitalize text-[#777]">{data.brief.status.replaceAll('_',' ')}</p></div><select className="field w-auto" value={data.brief.status} onChange={e=>mutate(`/admin/briefs/${data.brief!.id}`,{status:e.target.value},'PATCH')}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="submitted">Submitted</option><option value="reviewed">Reviewed</option></select></div>:<form className="mt-4 flex gap-2" onSubmit={async e=>{e.preventDefault();const templateId=String(new FormData(e.currentTarget).get('templateId'));await mutate(`/admin/projects/${id}/brief`,{templateId})}}><select className="field" name="templateId" required><option value="">Choose a brief template</option>{briefTemplates.map(t=><option value={t.id}>{t.name}</option>)}</select><button className="btn-secondary">Assign</button></form>}</div>
+        <div className="surface rounded-2xl p-6 lg:col-span-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Client briefs</h2><form className="flex min-w-[280px] gap-2" onSubmit={async e=>{e.preventDefault();const templateId=String(new FormData(e.currentTarget).get('templateId'));await mutate(`/admin/projects/${id}/brief`,{templateId})}}><select className="field" name="templateId" required><option value="">Assign another brief</option>{briefTemplates.filter(template=>!briefs.some(brief=>brief.title===template.name)).map(template=><option value={template.id}>{template.name}</option>)}</select><button className="btn-secondary">Assign</button></form></div><div className="mt-6 grid gap-6">{briefs.map(brief=><section className="rounded-xl border border-white/10 p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="text-lg font-semibold">{brief.title}</h3><p className="mt-1 text-sm capitalize text-[#777]">{brief.status==='submitted'?'Finalized':brief.status.replaceAll('_',' ')}</p>{brief.submittedAt&&<p className="text-xs text-[#777]">Finalized {new Date(brief.submittedAt).toLocaleDateString()}</p>}</div>{brief.status==='submitted'&&<div className="flex gap-2"><button className="btn-secondary" onClick={()=>reopenBrief(brief)}>Reopen brief</button><a className="btn-primary" href={`/api/admin/briefs/${brief.id}/pdf`}>Download PDF</a></div>}</div>{brief.status==='submitted'?<div className="mt-7 grid gap-6">{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <div><p className="label">{field.label}</p>{field.type==='url'&&value?<a className="mt-2 block break-all text-[#4ADE80] underline" href={String(value)} target="_blank" rel="noreferrer">{String(value)}</a>:<p className="mt-2 whitespace-pre-wrap leading-7">{value===true?'Yes':value===false?'No':String(value||'Not provided')}</p>}</div>})}</div>:<form className="mt-7 grid gap-5" onSubmit={e=>{e.preventDefault();void saveBrief(brief,e.currentTarget)}}>{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <label className="label">{field.label}{field.required?' *':''}{field.type==='long_text'?<textarea className="field min-h-28" name={field.id} defaultValue={String(value||'')}/>:field.type==='select'?<select className="field" name={field.id} defaultValue={String(value||'')}><option value="">Choose…</option>{field.options?.map(option=><option value={option}>{option}</option>)}</select>:field.type==='checkbox'?<span className="flex items-center gap-2 text-sm normal-case tracking-normal text-[var(--ink)]"><input type="checkbox" name={field.id} defaultChecked={value===true}/> Yes</span>:field.type==='file'?<p className="text-sm normal-case tracking-normal text-[#777]">Upload this file in the project Files section and record any related notes here.</p>:<input className="field" name={field.id} type={field.type==='email'?'email':field.type==='url'?'url':'text'} defaultValue={String(value||'')}/>}</label>})}<div className="flex flex-wrap justify-end gap-3"><button className="btn-secondary">Save draft</button><button className="btn-primary" type="button" onClick={event=>{const form=event.currentTarget.form;if(form)void saveBrief(brief,form,true)}}>Finalize brief</button></div></form>}</section>)}{!briefs.length&&<p className="text-sm text-[#777]">No brief is assigned to this project yet.</p>}</div></div>
         <div className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Private project files</h2><form onSubmit={upload} className="mt-4 grid gap-3"><input className="field" type="file" name="file" required/><input className="field" name="category" placeholder="Category" defaultValue="General"/><label className="flex gap-2 text-sm"><input type="checkbox" name="clientVisible" value="true"/>Share with client</label><button className="btn-secondary">Upload file</button></form><div className="mt-5 divide-y divide-white/10">{data.files.map(f=><div className="flex items-center gap-3 py-3 text-sm"><a className="min-w-0 flex-1 truncate font-semibold" href={`/api/admin/files/${f.id}/download`}>{f.filename}</a><label className="flex items-center gap-2"><input type="checkbox" checked={f.clientVisible} onChange={e=>filePatch(f.id,{clientVisible:e.target.checked})}/>Shared</label><button className="text-red-400" onClick={async()=>{if(confirm('Delete this file?')){await api(`/admin/files/${f.id}`,{method:'DELETE'});load()}}}>Delete</button></div>)}</div></div>
         <div className="surface rounded-2xl p-6">
           <div className="flex items-center justify-between">

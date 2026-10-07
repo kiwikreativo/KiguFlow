@@ -12,9 +12,6 @@ export function resolvePublicOrigin(
   fallbackUrl: string,
   requestUrl?: string,
 ) {
-  const fallback = normalizeOrigin(fallbackUrl);
-  if (!fallback) throw new Error("APP_URL must be an absolute URL.");
-
   const allowed = new Set(
     allowedOrigins
       .split(",")
@@ -26,5 +23,17 @@ export function resolvePublicOrigin(
     .filter((value): value is string => Boolean(value))
     .map(normalizeOrigin);
 
-  return candidates.find((candidate): candidate is string => Boolean(candidate && allowed.has(candidate))) ?? fallback;
+  const trustedCandidate = candidates.find(
+    (candidate): candidate is string => Boolean(candidate && allowed.has(candidate)),
+  );
+  if (trustedCandidate) return trustedCandidate;
+
+  // APP_URL is a single URL by contract. Accepting the first valid value keeps
+  // local link generation resilient if it is configured like ALLOWED_ORIGINS.
+  const fallback = fallbackUrl
+    .split(",")
+    .map((value) => normalizeOrigin(value.trim()))
+    .find((value): value is string => Boolean(value));
+  if (!fallback) throw new Error("APP_URL must contain an absolute URL.");
+  return fallback;
 }
