@@ -34,6 +34,7 @@ export function Clients() {
           companyName: f.get("companyName") || null,
           email: f.get("email"),
           phone: f.get("phone") || null,
+          preferredLanguage: f.get("preferredLanguage"),
           status: "active",
         }),
       });
@@ -144,6 +145,13 @@ export function Clients() {
             <label className="label">
               Phone
               <input name="phone" className="field" />
+            </label>
+            <label className="label">
+              Preferred Language
+              <select name="preferredLanguage" className="field" defaultValue="English">
+                <option value="English">English</option>
+                <option value="Spanish">Spanish</option>
+              </select>
             </label>
             <button className="btn-primary mt-3 w-full py-3.5">Create client</button>
           </form>

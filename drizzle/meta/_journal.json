@@ -36,6 +36,13 @@
       "when": 1789835000000,
       "tag": "0004_client_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791390000000,
+      "tag": "0005_client_preferred_language",
+      "breakpoints": true
     }
   ]
 }

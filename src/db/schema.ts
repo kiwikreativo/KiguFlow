@@ -38,6 +38,7 @@ export const clients = pgTable('clients', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   companyName: text('company_name'), email: text('email').notNull(), phone: text('phone'), website: text('website'), notes: text('notes'),
+  preferredLanguage: text('preferred_language').notNull().default('English'),
   status: clientStatus('status').notNull().default('active'),
   archivedAt: timestamp('archived_at', { withTimezone: true }), ...timestamps,
 }, (t) => [index('clients_status_idx').on(t.status), index('clients_name_idx').on(t.name), uniqueIndex('clients_email_normalized_idx').on(sql`lower(trim(${t.email}))`)]);
