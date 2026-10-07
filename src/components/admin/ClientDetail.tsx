@@ -1,11 +1,74 @@
-import { useEffect,useState,type FormEvent } from 'react';
-import { toast,Toaster } from 'sonner';
+import { useEffect, useState, type FormEvent } from 'react';
+import { toast, Toaster } from 'sonner';
 import { api } from '@/lib/api';
 import { Shell } from './Shell';
-<<<<<<< HEAD
-type Client={id:string;name:string;companyName:string|null;email:string;phone:string|null;website:string|null;notes:string|null;preferredLanguage:'English'|'Spanish';status:string;projects:Array<{id:string;name:string;status:string;serviceType:string|null}>;files:Array<{id:string;filename:string;category:string;projectId:string}>;documents:Array<{id:string;title:string;category:string;status:string}>;activity:Array<{id:string;summary:string;createdAt:string}>};
-export function ClientDetail({id}:{id:string}){const [row,setRow]=useState<Client|null>(null);const load=()=>api<Client>(`/admin/clients/${id}`).then(setRow).catch(()=>location.href='/clients');useEffect(()=>{void load()},[id]);async function save(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);try{await api(`/admin/clients/${id}`,{method:'PATCH',body:JSON.stringify({name:f.get('name'),companyName:f.get('companyName')||null,email:f.get('email'),phone:f.get('phone')||null,website:f.get('website')||null,notes:f.get('notes')||null,preferredLanguage:f.get('preferredLanguage'),status:f.get('status')})});toast.success('Client updated');load()}catch(x){toast.error(x instanceof Error?x.message:'Could not update client')}}if(!row)return <Shell title="Loading client…"><div className="surface h-64 animate-pulse rounded-2xl"/></Shell>;return <Shell title={row.name}><Toaster richColors/><div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]"><form onSubmit={save} className="surface grid gap-4 rounded-2xl p-6"><h2 className="text-xl font-semibold">Client information</h2>{[['name','Name'],['companyName','Company'],['email','Email'],['phone','Phone'],['website','Website']].map(([name,label])=><label className="label">{label}<input className="field" name={name} type={name==='email'?'email':'text'} defaultValue={(row as any)[name]||''} required={name==='name'||name==='email'}/></label>)}<label className="label">Preferred Language<select className="field" name="preferredLanguage" defaultValue={row.preferredLanguage||'English'}><option value="English">English</option><option value="Spanish">Spanish</option></select></label><label className="label">Status<select className="field" name="status" defaultValue={row.status}>{['lead','active','inactive','archived'].map(x=><option value={x}>{x}</option>)}</select></label><label className="label">Notes<textarea className="field min-h-28" name="notes" defaultValue={row.notes||''}/></label><button className="btn-primary">Save client</button></form><div className="grid content-start gap-5"><section className="surface rounded-2xl p-6"><div className="flex justify-between"><h2 className="text-xl font-semibold">Projects</h2><a className="btn-secondary" href={`/projects?client=${row.id}`}>New project</a></div><div className="mt-4 divide-y divide-white/10">{row.projects.map(p=><a className="flex justify-between py-4" href={`/projects/${p.id}`}><span><strong>{p.name}</strong><small className="block text-[#777]">{p.serviceType}</small></span><span className="badge">{p.status}</span></a>)}</div></section><section className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Files & documents</h2><p className="mt-3 text-sm text-[#777]">{row.files.length} files · {row.documents.length} documents across this client’s projects.</p></section><section className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Activity</h2>{row.activity.map(a=><div className="border-b border-white/10 py-3 text-sm"><p>{a.summary}</p><time className="text-xs text-[#777]">{new Date(a.createdAt).toLocaleString()}</time></div>)}</section></div></div></Shell>}
-=======
-type Client={id:string;name:string;companyName:string|null;email:string;phone:string|null;website:string|null;notes:string|null;status:string;preferredLanguage:'en'|'es';projects:Array<{id:string;name:string;status:string;serviceType:string|null}>;files:Array<{id:string;filename:string;category:string;projectId:string}>;documents:Array<{id:string;title:string;category:string;status:string}>;activity:Array<{id:string;summary:string;createdAt:string}>};
-export function ClientDetail({id}:{id:string}){const [row,setRow]=useState<Client|null>(null);const load=()=>api<Client>(`/admin/clients/${id}`).then(setRow).catch(()=>location.href='/clients');useEffect(()=>{void load()},[id]);async function save(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);try{await api(`/admin/clients/${id}`,{method:'PATCH',body:JSON.stringify({name:f.get('name'),companyName:f.get('companyName')||null,email:f.get('email'),phone:f.get('phone')||null,website:f.get('website')||null,notes:f.get('notes')||null,status:f.get('status'),preferredLanguage:f.get('preferredLanguage')})});toast.success('Client updated');load()}catch(x){toast.error(x instanceof Error?x.message:'Could not update client')}}if(!row)return <Shell title="Loading client…"><div className="surface h-64 animate-pulse rounded-2xl"/></Shell>;return <Shell title={row.name}><Toaster richColors/><div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]"><form onSubmit={save} className="surface grid gap-4 rounded-2xl p-6"><h2 className="text-xl font-semibold">Client information</h2>{[['name','Name'],['companyName','Company'],['email','Email'],['phone','Phone'],['website','Website']].map(([name,label])=><label className="label">{label}<input className="field" name={name} type={name==='email'?'email':'text'} defaultValue={(row as any)[name]||''} required={name==='name'||name==='email'}/></label>)}<label className="label">Preferred language<select className="field" name="preferredLanguage" defaultValue={row.preferredLanguage} required><option value="en">English</option><option value="es">Spanish</option></select></label><label className="label">Status<select className="field" name="status" defaultValue={row.status}>{['lead','active','inactive','archived'].map(x=><option value={x}>{x}</option>)}</select></label><label className="label">Notes<textarea className="field min-h-28" name="notes" defaultValue={row.notes||''}/></label><button className="btn-primary">Save client</button></form><div className="grid content-start gap-5"><section className="surface rounded-2xl p-6"><div className="flex justify-between"><h2 className="text-xl font-semibold">Projects</h2><a className="btn-secondary" href={`/projects?client=${row.id}`}>New project</a></div><div className="mt-4 divide-y divide-white/10">{row.projects.map(p=><a className="flex justify-between py-4" href={`/projects/${p.id}`}><span><strong>{p.name}</strong><small className="block text-[#777]">{p.serviceType}</small></span><span className="badge">{p.status}</span></a>)}</div></section><section className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Files & documents</h2><p className="mt-3 text-sm text-[#777]">{row.files.length} files · {row.documents.length} documents across this client’s projects.</p></section><section className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Activity</h2>{row.activity.map(a=><div className="border-b border-white/10 py-3 text-sm"><p>{a.summary}</p><time className="text-xs text-[#777]">{new Date(a.createdAt).toLocaleString()}</time></div>)}</section></div></div></Shell>}
->>>>>>> cc89298e13b9a95f3e5650569025dc311e26328c
+
+type Client = {
+  id: string;
+  name: string;
+  companyName: string | null;
+  email: string;
+  phone: string | null;
+  website: string | null;
+  notes: string | null;
+  status: string;
+  preferredLanguage: 'en' | 'es';
+  projects: Array<{ id: string; name: string; status: string; serviceType: string | null }>;
+  files: Array<{ id: string; filename: string; category: string; projectId: string }>;
+  documents: Array<{ id: string; title: string; category: string; status: string }>;
+  activity: Array<{ id: string; summary: string; createdAt: string }>;
+};
+
+export function ClientDetail({ id }: { id: string }) {
+  const [row, setRow] = useState<Client | null>(null);
+  const load = () => api<Client>(`/admin/clients/${id}`).then(setRow).catch(() => location.href = '/clients');
+
+  useEffect(() => { void load(); }, [id]);
+
+  async function save(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    try {
+      await api(`/admin/clients/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: f.get('name'), companyName: f.get('companyName') || null,
+          email: f.get('email'), phone: f.get('phone') || null,
+          website: f.get('website') || null, notes: f.get('notes') || null,
+          status: f.get('status'), preferredLanguage: f.get('preferredLanguage'),
+        }),
+      });
+      toast.success('Client updated');
+      load();
+    } catch (x) {
+      toast.error(x instanceof Error ? x.message : 'Could not update client');
+    }
+  }
+
+  if (!row) return <Shell title="Loading client…"><div className="surface h-64 animate-pulse rounded-2xl" /></Shell>;
+
+  return <Shell title={row.name}>
+    <Toaster richColors />
+    <div className="grid gap-5 lg:grid-cols-[.8fr_1.2fr]">
+      <form onSubmit={save} className="surface grid gap-4 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold">Client information</h2>
+        {[['name', 'Name'], ['companyName', 'Company'], ['email', 'Email'], ['phone', 'Phone'], ['website', 'Website']].map(([name, label]) =>
+          <label className="label" key={name}>{label}<input className="field" name={name} type={name === 'email' ? 'email' : 'text'} defaultValue={(row as any)[name] || ''} required={name === 'name' || name === 'email'} /></label>,
+        )}
+        <label className="label">Preferred language
+          <select className="field" name="preferredLanguage" defaultValue={row.preferredLanguage} required>
+            <option value="en">English</option><option value="es">Spanish</option>
+          </select>
+        </label>
+        <label className="label">Status<select className="field" name="status" defaultValue={row.status}>{['lead', 'active', 'inactive', 'archived'].map(x => <option value={x} key={x}>{x}</option>)}</select></label>
+        <label className="label">Notes<textarea className="field min-h-28" name="notes" defaultValue={row.notes || ''} /></label>
+        <button className="btn-primary">Save client</button>
+      </form>
+      <div className="grid content-start gap-5">
+        <section className="surface rounded-2xl p-6"><div className="flex justify-between"><h2 className="text-xl font-semibold">Projects</h2><a className="btn-secondary" href={`/projects?client=${row.id}`}>New project</a></div><div className="mt-4 divide-y divide-white/10">{row.projects.map(p => <a className="flex justify-between py-4" href={`/projects/${p.id}`} key={p.id}><span><strong>{p.name}</strong><small className="block text-[#777]">{p.serviceType}</small></span><span className="badge">{p.status}</span></a>)}</div></section>
+        <section className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Files & documents</h2><p className="mt-3 text-sm text-[#777]">{row.files.length} files · {row.documents.length} documents across this client’s projects.</p></section>
+        <section className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Activity</h2>{row.activity.map(a => <div className="border-b border-white/10 py-3 text-sm" key={a.id}><p>{a.summary}</p><time className="text-xs text-[#777]">{new Date(a.createdAt).toLocaleString()}</time></div>)}</section>
+      </div>
+    </div>
+  </Shell>;
+}

@@ -40,7 +40,6 @@ export const clients = pgTable('clients', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   companyName: text('company_name'), email: text('email').notNull(), phone: text('phone'), website: text('website'), notes: text('notes'),
-  preferredLanguage: text('preferred_language').notNull().default('English'),
   status: clientStatus('status').notNull().default('active'),
   preferredLanguage: preferredLanguage('preferred_language').notNull().default('en'),
   archivedAt: timestamp('archived_at', { withTimezone: true }), ...timestamps,

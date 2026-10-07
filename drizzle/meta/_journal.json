@@ -40,13 +40,8 @@
     {
       "idx": 5,
       "version": "7",
-<<<<<<< HEAD
-      "when": 1791390000000,
-      "tag": "0005_client_preferred_language",
-=======
       "when": 1790524800000,
       "tag": "0005_admin_briefs_bundles_i18n",
->>>>>>> cc89298e13b9a95f3e5650569025dc311e26328c
       "breakpoints": true
     }
   ]

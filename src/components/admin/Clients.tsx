@@ -147,17 +147,10 @@ export function Clients() {
               <input name="phone" className="field" />
             </label>
             <label className="label">
-<<<<<<< HEAD
-              Preferred Language
-              <select name="preferredLanguage" className="field" defaultValue="English">
-                <option value="English">English</option>
-                <option value="Spanish">Spanish</option>
-=======
               Preferred language
               <select name="preferredLanguage" className="field" defaultValue="en" required>
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
->>>>>>> cc89298e13b9a95f3e5650569025dc311e26328c
               </select>
             </label>
             <button className="btn-primary mt-3 w-full py-3.5">Create client</button>
