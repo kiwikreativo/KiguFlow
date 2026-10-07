@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { parseStartingPoint, phaseStatusForStage, SERVICE_PACKAGES } from './project-creation';
+import { SERVICE_BUNDLES } from '../lib/project-options';
 
 describe('project starting points', () => {
-  it('keeps the five original services and three SEO bundles', () => {
-    expect(SERVICE_PACKAGES).toHaveLength(8);
+  it('exposes standalone services separately from service bundles', () => {
+    expect(SERVICE_PACKAGES.length).toBeGreaterThanOrEqual(9);
     expect(SERVICE_PACKAGES).toContain('Local SEO');
+    expect(SERVICE_PACKAGES).toContain('Geographic SEO');
+    expect(SERVICE_PACKAGES).toContain('Web Development + SEO');
     expect(SERVICE_PACKAGES).toContain('Web Redesign + SEO');
+    expect(SERVICE_BUNDLES).toContain('Website Redesign + Local SEO');
+    expect(SERVICE_BUNDLES).toContain('Mobile Enhancement + SEO');
   });
   it('accepts supported stages and template UUIDs', () => {
     expect(parseStartingPoint('stage:design_approved')).toEqual({ kind: 'stage', identifier: 'design_approved' });
