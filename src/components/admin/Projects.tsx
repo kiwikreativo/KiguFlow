@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Plus, ArrowUpRight } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
+import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
 type Project = {
@@ -83,7 +84,7 @@ export function Projects() {
             className="surface group rounded-2xl p-6 transition-transform hover:-translate-y-1"
           >
             <div className="flex justify-between">
-              <span className="badge">{r.status.replaceAll("_", " ")}</span>
+              <span className="badge project-status" data-status={r.status}>{projectStatusLabel(r.status)}</span>
               <ArrowUpRight className="transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
             </div>
             <h2 className="mt-12 text-2xl font-semibold tracking-[-.04em]">

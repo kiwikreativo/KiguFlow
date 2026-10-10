@@ -7,6 +7,7 @@ import {
   Warning,
 } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
+import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 type Data = {
   activeProjects: number;
@@ -79,8 +80,8 @@ export function Dashboard() {
                   {project.clientName}
                 </span>
               </div>
-              <span className="badge hidden sm:inline-flex">
-                {project.status.replaceAll("_", " ")}
+              <span className="badge project-status hidden sm:inline-flex" data-status={project.status}>
+                {projectStatusLabel(project.status)}
               </span>
               <ArrowUpRight className="transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
             </a>

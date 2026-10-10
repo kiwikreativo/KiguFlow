@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Check, Copy, Plus, Trash } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
+import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
 type Phase = {
@@ -265,6 +266,7 @@ export function ProjectDetail({ id }: { id: string }) {
               <select
                 aria-label="Project status"
                 value={data.status}
+                data-status={data.status}
                 onChange={(e) =>
                   mutate(
                     `/admin/projects/${id}`,
@@ -272,13 +274,13 @@ export function ProjectDetail({ id }: { id: string }) {
                     "PATCH",
                   )
                 }
-                className="field w-auto"
+                className="field project-status w-auto"
               >
                 <option value="onboarding">Onboarding</option>
                 <option value="planning">Planning</option>
                 <option value="in_progress">In progress</option>
                 <option value="waiting_for_client">Waiting for client</option>
-                <option value="review">Review</option>
+                <option value="review">{projectStatusLabel("review")}</option>
                 <option value="completed">Completed</option>
               </select>
             </div>

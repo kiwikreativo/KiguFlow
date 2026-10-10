@@ -10,6 +10,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
+import { projectStatusLabel } from "@/lib/project-status";
 import { translator, translateStatus, type Language } from '@/i18n';
 type PortalData = {
   id: string;
@@ -134,8 +135,8 @@ export function Portal({ token }: { token: string }) {
           </div>
           <div className="rounded-[8px] border border-white/10 bg-[#191C21] p-6 text-white md:p-9">
             <p className="text-sm text-white/50">{t('currentStatus')}</p>
-            <p className="mt-2 text-2xl font-semibold capitalize">
-              {translateStatus(language,data.status)}
+            <p className="project-status project-status-text mt-2 text-2xl font-semibold" data-status={data.status}>
+              {language === 'en' ? projectStatusLabel(data.status) : translateStatus(language,data.status)}
             </p>
             <p className="mt-10 text-sm text-white/50">{t('nextDate')}</p>
             <p className="mt-1 font-semibold">

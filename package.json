@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --local --env-file .env",
+    "dev": "astro dev",
     "dev:astro": "astro dev",
     "build": "astro check && astro build",
     "check": "astro check && tsc --noEmit",
@@ -45,8 +45,8 @@
     "drizzle-kit": "latest",
     "prettier": "latest",
     "tsx": "latest",
-    "typescript": "latest",
+    "typescript": "^6.0.0",
     "vitest": "latest",
-    "wrangler": "latest"
+    "wrangler": "4.149.0"
   }
 }

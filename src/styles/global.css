@@ -44,12 +44,7 @@ button { cursor: pointer; }
 .field { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--field); padding: .72rem .85rem; color: var(--ink); }
 .field-search { padding-left: 2.5rem; }
 select.field {
-  appearance: none;
-  padding-right: 2.75rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23a1a1aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
-  background-position: right .85rem center;
-  background-repeat: no-repeat;
-  background-size: 1rem;
+  appearance: auto;
 }
 .field:focus { border-color: var(--accent-text); outline: 3px solid rgba(74,222,128,.16); }
 .label { display: grid; gap: .4rem; font-size: .72rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
@@ -57,6 +52,25 @@ select.field {
 .btn-primary:hover { background: #6ee799; transform: translateY(-2px); }
 .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: .7rem 1rem; font-weight: 650; }
 .badge { display: inline-flex; align-items: center; border: 1px solid rgba(74,222,128,.28); border-radius: 999px; background: rgba(74,222,128,.1); color: var(--accent-text); padding: .25rem .55rem; font-size: .68rem; font-weight: 650; text-transform: capitalize; }
+.project-status { --project-status-color: #4ade80; --project-status-fill: color-mix(in srgb, var(--project-status-color) 12%, var(--surface)); --project-status-border: color-mix(in srgb, var(--project-status-color) 35%, transparent); }
+.project-status[data-status='waiting_for_client'] { --project-status-color: #fde047; }
+.project-status[data-status='review'] { --project-status-color: #fb923c; }
+.project-status[data-status='onboarding'] { --project-status-color: #60a5fa; }
+.project-status[data-status='planning'] { --project-status-color: #d1d5db; }
+.project-status[data-status='draft'] { --project-status-color: #cbd5e1; }
+.project-status[data-status='archived'] { --project-status-color: #a1a1aa; }
+.project-status[data-status='completed'] { --project-status-color: #dcfce7; --project-status-fill: #14532d; --project-status-border: #166534; }
+.project-status.badge { border-color: var(--project-status-border); background: var(--project-status-fill); color: var(--project-status-color); }
+select.project-status { border-color: var(--project-status-border); background-color: var(--project-status-fill); color: var(--project-status-color); }
+.project-status-text { color: var(--project-status-color); }
+:root[data-theme='light'] .project-status { --project-status-color: #166534; --project-status-fill: #dcfce7; --project-status-border: #22c55e; }
+:root[data-theme='light'] .project-status[data-status='waiting_for_client'] { --project-status-color: #854d0e; --project-status-fill: #fef9c3; --project-status-border: #eab308; }
+:root[data-theme='light'] .project-status[data-status='review'] { --project-status-color: #9a3412; --project-status-fill: #ffedd5; --project-status-border: #f97316; }
+:root[data-theme='light'] .project-status[data-status='onboarding'] { --project-status-color: #1e40af; --project-status-fill: #dbeafe; --project-status-border: #3b82f6; }
+:root[data-theme='light'] .project-status[data-status='planning'] { --project-status-color: #374151; --project-status-fill: #f3f4f6; --project-status-border: #9ca3af; }
+:root[data-theme='light'] .project-status[data-status='draft'] { --project-status-color: #475569; --project-status-fill: #f1f5f9; --project-status-border: #94a3b8; }
+:root[data-theme='light'] .project-status[data-status='archived'] { --project-status-color: #3f3f46; --project-status-fill: #e4e4e7; --project-status-border: #71717a; }
+:root[data-theme='light'] .project-status[data-status='completed'] { --project-status-color: #dcfce7; --project-status-fill: #14532d; --project-status-border: #166534; }
 .task-filter { --task-tone: var(--ink-soft); --task-fill: color-mix(in srgb, var(--task-tone) 15%, var(--surface)); border: 1px solid var(--task-tone); border-radius: 8px; background: transparent; color: var(--task-tone); padding: .55rem .8rem; font-size: .875rem; font-weight: 650; transition: color .18s ease, background .18s ease, transform .18s ease; }
 .task-filter:hover, .task-filter.is-active { background: var(--task-tone); color: #101310; transform: translateY(-1px); }
 .task-filter-all { --task-tone: var(--ink-soft); }
