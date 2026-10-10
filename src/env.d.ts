@@ -9,6 +9,9 @@ type RuntimeEnv = {
   RESEND_API_KEY?: string;
   RESEND_FROM_EMAIL?: string;
   FILES: R2Bucket;
+  UPLOAD_SCANS: Queue<{ fileId: string }>;
+  SCANNER_URL: string;
+  SCANNER_AUTH_TOKEN: string;
   ASSETS: Fetcher;
 };
 

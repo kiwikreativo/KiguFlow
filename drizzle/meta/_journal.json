@@ -43,6 +43,13 @@
       "when": 1790524800000,
       "tag": "0005_admin_briefs_bundles_i18n",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791398400000,
+      "tag": "0006_file_quarantine",
+      "breakpoints": true
     }
   ]
 }

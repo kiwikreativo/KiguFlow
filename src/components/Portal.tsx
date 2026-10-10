@@ -43,6 +43,7 @@ type PortalData = {
     filename: string;
     category: string;
     size: number;
+    scanStatus: 'pending' | 'clean' | 'rejected' | 'failed';
   }>;
   activity: Array<{ id: string; summary: string; createdAt: string }>;
 };
@@ -254,7 +255,7 @@ export function Portal({ token }: { token: string }) {
                     </strong>
                     <span className="text-xs text-[#777]">{f.category}</span>
                   </div>
-                  <a href={`/api/portal/${token}/files/${f.id}/download`} aria-label={`${t('download')} ${f.filename}`}><DownloadSimple /></a>
+                  {f.scanStatus === 'clean' ? <a href={`/api/portal/${token}/files/${f.id}/download`} aria-label={`${t('download')} ${f.filename}`}><DownloadSimple /></a> : <span className="text-xs text-[#777]">{f.scanStatus === 'pending' ? 'Scanning…' : f.scanStatus === 'rejected' ? 'Rejected' : 'Scan failed'}</span>}
                 </div>
               ))}
               {!data.files.length && (
