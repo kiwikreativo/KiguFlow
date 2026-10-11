@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Plus, ArrowUpRight } from "@phosphor-icons/react";
+import { Plus, ArrowUpRight, MagnifyingGlass, X } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
 import { projectStatusLabel } from "@/lib/project-status";
@@ -22,7 +22,8 @@ export function Projects() {
     [templates, setTemplates] = useState<Template[]>([]),
     [catalog, setCatalog] = useState<Catalog>({services:[],bundles:[]}),
     [open, setOpen] = useState(false),
-    [creating, setCreating] = useState(false);
+    [creating, setCreating] = useState(false),
+    [search, setSearch] = useState("");
   const load = () =>
     Promise.all([
       api<Project[]>("/admin/projects"),
@@ -40,6 +41,8 @@ export function Projects() {
   useEffect(() => {
     load();
   }, []);
+  const query = search.trim().toLowerCase();
+  const visibleRows = query ? rows.filter((project) => [project.name, project.clientName, project.status.replaceAll("_", " "), project.id].some((value) => value.toLowerCase().includes(query))) : rows;
   async function create(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -77,8 +80,14 @@ export function Projects() {
       }
     >
       <Toaster richColors />
+      <div className="relative mb-5 max-w-xl">
+        <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]" aria-hidden="true" />
+        <label className="sr-only" htmlFor="project-search">Search projects</label>
+        <input id="project-search" className="field field-search pr-11" type="search" placeholder="Search projects..." value={search} onChange={(event) => setSearch(event.target.value)} />
+        {search && <button type="button" aria-label="Clear project search" className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-[var(--ink-soft)] hover:bg-white/5 hover:text-[var(--ink)]" onClick={() => setSearch("")}><X /></button>}
+      </div>
       <div className="grid gap-3 lg:grid-cols-2">
-        {rows.map((r) => (
+        {visibleRows.map((r) => (
           <a
             href={`/projects/${r.id}`}
             className="surface group rounded-2xl p-6 transition-transform hover:-translate-y-1"
@@ -100,13 +109,13 @@ export function Projects() {
             </p>
           </a>
         ))}
-        {!rows.length && (
+        {!visibleRows.length && (
           <div className="surface col-span-full rounded-2xl p-14 text-center">
-            <h2 className="text-xl font-semibold">No projects yet</h2>
+            <h2 className="text-xl font-semibold">{rows.length ? "No projects found." : "No projects yet"}</h2>
             <p className="mt-2 text-[#777]">
-              Create your first project to organize tasks, files, and client
-              progress.
+              {rows.length ? "Try another name, client, status, or project ID." : "Create your first project to organize tasks, files, and client progress."}
             </p>
+            {rows.length > 0 && <button type="button" className="btn-secondary mt-5" onClick={() => setSearch("")}>Clear search</button>}
           </div>
         )}
       </div>
