@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Check, Copy, Plus, Trash } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
-import { api } from "@/lib/api";
+import { api, ApiRequestError, isAbortError, isAuthenticationError } from "@/lib/api";
 import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
@@ -70,14 +70,22 @@ export function ProjectDetail({ id }: { id: string }) {
     [deleteBriefTarget, setDeleteBriefTarget] = useState<Brief | null>(null),
     [deleteConfirmation, setDeleteConfirmation] = useState(""),
     [deleting, setDeleting] = useState(false);
-  const load = () =>
-    Promise.all([api<Project>(`/admin/projects/${id}`),api<Brief[]>(`/admin/projects/${id}/brief`)])
+  const handleLoadError = (error:unknown) => {
+    if (isAbortError(error)) return;
+    if (isAuthenticationError(error)) location.href = "/login";
+    else if (error instanceof ApiRequestError && error.status === 404) location.href = "/projects";
+    else toast.error(error instanceof Error ? error.message : "Could not load project");
+  };
+  const load = (signal?:AbortSignal) =>
+    Promise.all([api<Project>(`/admin/projects/${id}`,{signal}),api<Brief[]>(`/admin/projects/${id}/brief`,{signal})])
       .then(([project,projectBriefs])=>{setData(project);setBriefs(projectBriefs)})
-      .catch(() => (location.href = "/projects"));
+      .catch(handleLoadError);
   useEffect(() => {
-    void load();
-    void api<Array<{id:string;name:string}>>('/admin/brief-templates').then(setBriefTemplates);
-    void api<Client[]>('/admin/clients').then(setClients);
+    const controller = new AbortController();
+    void load(controller.signal);
+    void api<Array<{id:string;name:string}>>('/admin/brief-templates',{signal:controller.signal}).then(setBriefTemplates).catch(handleLoadError);
+    void api<Client[]>('/admin/clients',{signal:controller.signal}).then(setClients).catch(handleLoadError);
+    return () => controller.abort();
   }, [id]);
   const byPhase = useMemo(
     () =>

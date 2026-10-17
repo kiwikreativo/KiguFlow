@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, isAbortError, isAuthenticationError } from "@/lib/api";
 import { Shell } from "./Shell";
 type Task = {
   id: string;
@@ -27,22 +27,36 @@ export function Tasks() {
   const [rows, setRows] = useState<Task[]>([]),
     [projects, setProjects] = useState<Project[]>([]),
     [status, setStatus] = useState(""),
-    [projectId, setProjectId] = useState("");
+    [projectId, setProjectId] = useState(""),
+    [loadError, setLoadError] = useState("");
   useEffect(() => {
+    const controller = new AbortController();
     const query = new URLSearchParams();
     if (status) query.set("status", status);
     if (projectId) query.set("projectId", projectId);
-    api<Task[]>(`/admin/tasks${query.size ? `?${query}` : ""}`)
+    api<Task[]>(`/admin/tasks${query.size ? `?${query}` : ""}`, { signal: controller.signal })
       .then(setRows)
-      .catch(() => (location.href = "/login"));
+      .catch((error) => {
+        if (isAbortError(error)) return;
+        if (isAuthenticationError(error)) location.href = "/login";
+        else setLoadError(error instanceof Error ? error.message : "Could not load tasks");
+      });
+    return () => controller.abort();
   }, [status, projectId]);
   useEffect(() => {
-    api<Project[]>("/admin/projects")
+    const controller = new AbortController();
+    api<Project[]>("/admin/projects", { signal: controller.signal })
       .then(setProjects)
-      .catch(() => (location.href = "/login"));
+      .catch((error) => {
+        if (isAbortError(error)) return;
+        if (isAuthenticationError(error)) location.href = "/login";
+        else setLoadError(error instanceof Error ? error.message : "Could not load projects");
+      });
+    return () => controller.abort();
   }, []);
   return (
     <Shell title="All tasks">
+      {loadError && <div className="surface mb-5 rounded-2xl p-5 text-red-500" role="alert">{loadError}</div>}
       <div className="surface rounded-2xl">
         <div className="flex flex-col gap-3 border-b border-[#ddd] p-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2" aria-label="Filter tasks by status">

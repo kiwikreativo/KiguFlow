@@ -18,6 +18,13 @@ describe('admin workflow validation', () => {
     expect(source.match(/app\.patch\('\/admin\/invoices\/:id'/g)).toHaveLength(1);
   });
 
+  it('does not run global file cleanup when deleting a project without files', () => {
+    const source = readFileSync(fileURLToPath(new URL('./app.ts', import.meta.url)), 'utf8');
+    const start = source.indexOf("app.delete('/admin/projects/:id'");
+    const handler = source.slice(start, source.indexOf("app.", start + 4));
+    expect(handler).toContain('if (projectFiles.length) await runFileCleanup');
+  });
+
   it('accepts combined task status and project filters', () => {
     const query = { status: 'review', projectId: 'dff1602f-6482-427e-b10d-b91fe6facea3' };
     expect(taskListQuerySchema.parse(query)).toEqual(query);

@@ -6,7 +6,7 @@ import {
   ClockCountdown,
   Warning,
 } from "@phosphor-icons/react";
-import { api } from "@/lib/api";
+import { api, isAbortError, isAuthenticationError } from "@/lib/api";
 import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 type Data = {
@@ -24,10 +24,17 @@ type Data = {
 };
 export function Dashboard() {
   const [data, setData] = useState<Data | null>(null);
+  const [loadError, setLoadError] = useState("");
   useEffect(() => {
-    api<Data>("/admin/dashboard")
+    const controller = new AbortController();
+    api<Data>("/admin/dashboard", { signal: controller.signal })
       .then(setData)
-      .catch(() => (location.href = "/login"));
+      .catch((error) => {
+        if (isAbortError(error)) return;
+        if (isAuthenticationError(error)) location.href = "/login";
+        else setLoadError(error instanceof Error ? error.message : "Could not load the dashboard.");
+      });
+    return () => controller.abort();
   }, []);
   const stats = data
     ? [
@@ -47,6 +54,7 @@ export function Dashboard() {
     : [];
   return (
     <Shell title="Welcome back">
+      {loadError && <div className="surface mb-5 rounded-2xl p-5 text-red-500" role="alert">{loadError}</div>}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ label, value, Icon }) => (
           <article className="surface rounded-2xl p-5">

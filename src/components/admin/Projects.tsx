@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Plus, ArrowUpRight, MagnifyingGlass, X } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
-import { api } from "@/lib/api";
+import { api, isAbortError, isAuthenticationError } from "@/lib/api";
 import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
@@ -24,22 +24,27 @@ export function Projects() {
     [open, setOpen] = useState(false),
     [creating, setCreating] = useState(false),
     [search, setSearch] = useState("");
-  const load = () =>
+  const load = (signal?: AbortSignal) =>
     Promise.all([
-      api<Project[]>("/admin/projects"),
-      api<Client[]>("/admin/clients"),
-      api<Template[]>("/admin/templates"),
-      api<Catalog>("/admin/service-catalog"),
+      api<Project[]>("/admin/projects", { signal }),
+      api<Client[]>("/admin/clients", { signal }),
+      api<Template[]>("/admin/templates", { signal }),
+      api<Catalog>("/admin/service-catalog", { signal }),
     ])
       .then(([a, b, c, d]) => {
         setRows(a);
         setClients(b);
         setTemplates(c);
         setCatalog(d);
-      })
-      .catch(() => (location.href = "/login"));
+      });
   useEffect(() => {
-    load();
+    const controller = new AbortController();
+    void load(controller.signal).catch((error) => {
+      if (isAbortError(error)) return;
+      if (isAuthenticationError(error)) location.href = "/login";
+      else toast.error(error instanceof Error ? error.message : "Could not load projects");
+    });
+    return () => controller.abort();
   }, []);
   const query = search.trim().toLowerCase();
   const visibleRows = query ? rows.filter((project) => [project.name, project.clientName, project.status.replaceAll("_", " "), project.id].some((value) => value.toLowerCase().includes(query))) : rows;
