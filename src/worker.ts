@@ -3,6 +3,8 @@ import { runScheduledNotifications } from './server/notifications';
 import { createDatabase } from './server/db';
 import { runFileCleanup } from './server/file-cleanup';
 import { retryProblemReportNotifications } from './server/problem-reports';
+import { secureResponse } from './server/response-security';
+import { markScanFailed, processUploadScan, type UploadScanMessage } from './server/uploads';
 
 export default {
   async fetch(request, env, ctx) {
