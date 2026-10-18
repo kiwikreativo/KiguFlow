@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Check, Copy, Plus, Trash } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
-import { api } from "@/lib/api";
+import { api, ApiRequestError, isAbortError, isAuthenticationError } from "@/lib/api";
+import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
 type Phase = {
@@ -59,21 +60,32 @@ type BriefField={id:string;label:string;type:string;required:boolean;options?:st
 type Brief={id:string;title:string;status:string;submittedAt:string|null;fieldsSnapshot:BriefField[];responses:Array<{fieldId:string;value:unknown}>};
 export function ProjectDetail({ id }: { id: string }) {
   const [data, setData] = useState<Project | null>(null),
-    [modal, setModal] = useState<"project" | "task" | "phase" | "invoice" | null>(null),
+    [modal, setModal] = useState<"project" | "task" | "phase" | "invoice" | "delete-project" | null>(null),
     [briefTemplates,setBriefTemplates]=useState<Array<{id:string;name:string}>>([]),
     [briefs,setBriefs]=useState<Brief[]>([]),
     [clients, setClients] = useState<Client[]>([]),
     [inviteOpen, setInviteOpen] = useState(false),
     [selectedClientId, setSelectedClientId] = useState(""),
-    [inviting, setInviting] = useState(false);
-  const load = () =>
-    Promise.all([api<Project>(`/admin/projects/${id}`),api<Brief[]>(`/admin/projects/${id}/brief`)])
+    [inviting, setInviting] = useState(false),
+    [deleteBriefTarget, setDeleteBriefTarget] = useState<Brief | null>(null),
+    [deleteConfirmation, setDeleteConfirmation] = useState(""),
+    [deleting, setDeleting] = useState(false);
+  const handleLoadError = (error:unknown) => {
+    if (isAbortError(error)) return;
+    if (isAuthenticationError(error)) location.href = "/login";
+    else if (error instanceof ApiRequestError && error.status === 404) location.href = "/projects";
+    else toast.error(error instanceof Error ? error.message : "Could not load project");
+  };
+  const load = (signal?:AbortSignal) =>
+    Promise.all([api<Project>(`/admin/projects/${id}`,{signal}),api<Brief[]>(`/admin/projects/${id}/brief`,{signal})])
       .then(([project,projectBriefs])=>{setData(project);setBriefs(projectBriefs)})
-      .catch(() => (location.href = "/projects"));
+      .catch(handleLoadError);
   useEffect(() => {
-    void load();
-    void api<Array<{id:string;name:string}>>('/admin/brief-templates').then(setBriefTemplates);
-    void api<Client[]>('/admin/clients').then(setClients);
+    const controller = new AbortController();
+    void load(controller.signal);
+    void api<Array<{id:string;name:string}>>('/admin/brief-templates',{signal:controller.signal}).then(setBriefTemplates).catch(handleLoadError);
+    void api<Client[]>('/admin/clients',{signal:controller.signal}).then(setClients).catch(handleLoadError);
+    return () => controller.abort();
   }, [id]);
   const byPhase = useMemo(
     () =>
@@ -199,6 +211,8 @@ export function ProjectDetail({ id }: { id: string }) {
   function briefResponses(brief:Brief,form:HTMLFormElement){const data=new FormData(form);return Object.fromEntries(brief.fieldsSnapshot.map(field=>[field.id,field.type==='checkbox'?data.get(field.id)==='on':data.get(field.id)||'']))}
   async function saveBrief(brief:Brief,form:HTMLFormElement,finalize=false){try{const responses=briefResponses(brief,form);await api(`/admin/briefs/${brief.id}/${finalize?'finalize':'draft'}`,{method:finalize?'POST':'PUT',body:JSON.stringify({responses})});toast.success(finalize?'Brief finalized.':'Draft saved.');load()}catch(error){toast.error(error instanceof Error?error.message:'Could not save brief')}}
   async function reopenBrief(brief:Brief){if(!confirm('Reopen this brief? The brief will become editable again and must be finalized once changes are complete.'))return;await api(`/admin/briefs/${brief.id}/reopen`,{method:'POST'});toast.success('Brief reopened.');load()}
+  async function deleteBrief(){if(!deleteBriefTarget||deleting)return;setDeleting(true);try{await api(`/admin/briefs/${deleteBriefTarget.id}`,{method:'DELETE'});setDeleteBriefTarget(null);toast.success('Brief deleted');load()}catch(error){toast.error(error instanceof Error?error.message:'Could not delete brief')}finally{setDeleting(false)}}
+  async function deleteProject(){if(deleteConfirmation!==data?.name||deleting)return;setDeleting(true);try{await api(`/admin/projects/${id}`,{method:'DELETE',body:JSON.stringify({name:deleteConfirmation})});location.href='/projects'}catch(error){toast.error(error instanceof Error?error.message:'Could not delete project');setDeleting(false)}}
   if (!data)
     return (
       <Shell title="Loading project…">
@@ -212,7 +226,7 @@ export function ProjectDetail({ id }: { id: string }) {
         <div className="flex gap-2"><button className="btn-secondary" onClick={portal}>
           <Copy />
           Copy portal link
-        </button><button className="btn-primary" onClick={openInvitation}>Email invitation</button></div>
+        </button><button className="btn-primary" onClick={openInvitation}>Email invitation</button><button className="rounded-[8px] border border-red-500/40 px-3 py-2 text-sm font-semibold text-red-400" onClick={()=>{setDeleteConfirmation('');setModal('delete-project')}}>Delete project</button></div>
       }
     >
       <Toaster richColors />
@@ -265,6 +279,7 @@ export function ProjectDetail({ id }: { id: string }) {
               <select
                 aria-label="Project status"
                 value={data.status}
+                data-status={data.status}
                 onChange={(e) =>
                   mutate(
                     `/admin/projects/${id}`,
@@ -272,13 +287,13 @@ export function ProjectDetail({ id }: { id: string }) {
                     "PATCH",
                   )
                 }
-                className="field w-auto"
+                className="field project-status w-auto"
               >
                 <option value="onboarding">Onboarding</option>
                 <option value="planning">Planning</option>
                 <option value="in_progress">In progress</option>
                 <option value="waiting_for_client">Waiting for client</option>
-                <option value="review">Review</option>
+                <option value="review">{projectStatusLabel("review")}</option>
                 <option value="completed">Completed</option>
               </select>
             </div>
@@ -441,8 +456,8 @@ export function ProjectDetail({ id }: { id: string }) {
         </div>
       </section>
       <section className="mt-10 grid gap-4 lg:grid-cols-2">
-        <div className="surface rounded-2xl p-6 lg:col-span-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Client briefs</h2><form className="flex min-w-[280px] gap-2" onSubmit={async e=>{e.preventDefault();const templateId=String(new FormData(e.currentTarget).get('templateId'));await mutate(`/admin/projects/${id}/brief`,{templateId})}}><select className="field" name="templateId" required><option value="">Assign another brief</option>{briefTemplates.filter(template=>!briefs.some(brief=>brief.title===template.name)).map(template=><option value={template.id}>{template.name}</option>)}</select><button className="btn-secondary">Assign</button></form></div><div className="mt-6 grid gap-6">{briefs.map(brief=><section className="rounded-xl border border-white/10 p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="text-lg font-semibold">{brief.title}</h3><p className="mt-1 text-sm capitalize text-[#777]">{brief.status==='submitted'?'Finalized':brief.status.replaceAll('_',' ')}</p>{brief.submittedAt&&<p className="text-xs text-[#777]">Finalized {new Date(brief.submittedAt).toLocaleDateString()}</p>}</div>{brief.status==='submitted'&&<div className="flex gap-2"><button className="btn-secondary" onClick={()=>reopenBrief(brief)}>Reopen brief</button><a className="btn-primary" href={`/api/admin/briefs/${brief.id}/pdf`}>Download PDF</a></div>}</div>{brief.status==='submitted'?<div className="mt-7 grid gap-6">{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <div><p className="label">{field.label}</p>{field.type==='url'&&value?<a className="mt-2 block break-all text-[#4ADE80] underline" href={String(value)} target="_blank" rel="noreferrer">{String(value)}</a>:<p className="mt-2 whitespace-pre-wrap leading-7">{value===true?'Yes':value===false?'No':String(value||'Not provided')}</p>}</div>})}</div>:<form className="mt-7 grid gap-5" onSubmit={e=>{e.preventDefault();void saveBrief(brief,e.currentTarget)}}>{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <label className="label">{field.label}{field.required?' *':''}{field.type==='long_text'?<textarea className="field min-h-28" name={field.id} defaultValue={String(value||'')}/>:field.type==='select'?<select className="field" name={field.id} defaultValue={String(value||'')}><option value="">Choose…</option>{field.options?.map(option=><option value={option}>{option}</option>)}</select>:field.type==='checkbox'?<span className="flex items-center gap-2 text-sm normal-case tracking-normal text-[var(--ink)]"><input type="checkbox" name={field.id} defaultChecked={value===true}/> Yes</span>:field.type==='file'?<p className="text-sm normal-case tracking-normal text-[#777]">Upload this file in the project Files section and record any related notes here.</p>:<input className="field" name={field.id} type={field.type==='email'?'email':field.type==='url'?'url':'text'} defaultValue={String(value||'')}/>}</label>})}<div className="flex flex-wrap justify-end gap-3"><button className="btn-secondary">Save draft</button><button className="btn-primary" type="button" onClick={event=>{const form=event.currentTarget.form;if(form)void saveBrief(brief,form,true)}}>Finalize brief</button></div></form>}</section>)}{!briefs.length&&<p className="text-sm text-[#777]">No brief is assigned to this project yet.</p>}</div></div>
-        <div className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Private project files</h2><form onSubmit={upload} className="mt-4 grid gap-3"><input className="field" type="file" name="file" required/><input className="field" name="category" placeholder="Category" defaultValue="General"/><label className="flex gap-2 text-sm"><input type="checkbox" name="clientVisible" value="true"/>Share with client</label><button className="btn-secondary">Upload file</button></form><div className="mt-5 divide-y divide-white/10">{data.files.map(f=><div className="flex items-center gap-3 py-3 text-sm">{f.scanStatus==='clean'?<a className="min-w-0 flex-1 truncate font-semibold" href={`/api/admin/files/${f.id}/download`}>{f.filename}</a>:<span className="min-w-0 flex-1 truncate font-semibold">{f.filename} <small className="text-[#777]">({f.scanStatus==='pending'?'scanning':f.scanStatus})</small></span>}<label className="flex items-center gap-2"><input type="checkbox" checked={f.clientVisible} onChange={e=>filePatch(f.id,{clientVisible:e.target.checked})}/>Shared</label><button className="text-red-400" onClick={async()=>{if(confirm('Delete this file?')){await api(`/admin/files/${f.id}`,{method:'DELETE'});load()}}}>Delete</button></div>)}</div></div>
+        <div className="surface rounded-2xl p-6 lg:col-span-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Client briefs</h2><form className="flex min-w-[280px] gap-2" onSubmit={async e=>{e.preventDefault();const templateId=String(new FormData(e.currentTarget).get('templateId'));await mutate(`/admin/projects/${id}/brief`,{templateId})}}><select className="field" name="templateId" required><option value="">Assign another brief</option>{briefTemplates.filter(template=>!briefs.some(brief=>brief.title===template.name)).map(template=><option value={template.id}>{template.name}</option>)}</select><button className="btn-secondary">Assign</button></form></div><div className="mt-6 grid gap-6">{briefs.map(brief=><section className="rounded-xl border border-white/10 p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="text-lg font-semibold">{brief.title}</h3><p className="mt-1 text-sm capitalize text-[#777]">{brief.status==='submitted'?'Finalized':brief.status.replaceAll('_',' ')}</p>{brief.submittedAt&&<p className="text-xs text-[#777]">Finalized {new Date(brief.submittedAt).toLocaleDateString()}</p>}</div><div className="flex gap-2">{brief.status==='submitted'&&<><button className="btn-secondary" onClick={()=>reopenBrief(brief)}>Reopen brief</button><a className="btn-primary" href={`/api/admin/briefs/${brief.id}/pdf`}>Download PDF</a></>}<button type="button" className="rounded-[8px] border border-red-500/40 px-3 py-2 text-sm font-semibold text-red-400" onClick={()=>setDeleteBriefTarget(brief)}>Delete</button></div></div>{brief.status==='submitted'?<div className="mt-7 grid gap-6">{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <div><p className="label">{field.label}</p>{field.type==='url'&&value?<a className="mt-2 block break-all text-[#4ADE80] underline" href={String(value)} target="_blank" rel="noreferrer">{String(value)}</a>:<p className="mt-2 whitespace-pre-wrap leading-7">{value===true?'Yes':value===false?'No':String(value||'Not provided')}</p>}</div>})}</div>:<form className="mt-7 grid gap-5" onSubmit={e=>{e.preventDefault();void saveBrief(brief,e.currentTarget)}}>{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <label className="label">{field.label}{field.required?' *':''}{field.type==='long_text'?<textarea className="field min-h-28" name={field.id} defaultValue={String(value||'')}/>:field.type==='select'?<select className="field" name={field.id} defaultValue={String(value||'')}><option value="">Choose…</option>{field.options?.map(option=><option value={option}>{option}</option>)}</select>:field.type==='checkbox'?<span className="flex items-center gap-2 text-sm normal-case tracking-normal text-[var(--ink)]"><input type="checkbox" name={field.id} defaultChecked={value===true}/> Yes</span>:field.type==='file'?<p className="text-sm normal-case tracking-normal text-[#777]">Upload this file in the project Files section and record any related notes here.</p>:<input className="field" name={field.id} type={field.type==='email'?'email':field.type==='url'?'url':'text'} defaultValue={String(value||'')}/>}</label>})}<div className="flex flex-wrap justify-end gap-3"><button className="btn-secondary">Save draft</button><button className="btn-primary" type="button" onClick={event=>{const form=event.currentTarget.form;if(form)void saveBrief(brief,form,true)}}>Finalize brief</button></div></form>}</section>)}{!briefs.length&&<p className="text-sm text-[#777]">No brief is assigned to this project yet.</p>}</div></div>
+        <div className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Private project files</h2><form onSubmit={upload} className="mt-4 grid gap-3"><input className="field" type="file" name="file" required/><input className="field" name="category" placeholder="Category" defaultValue="General"/><label className="flex gap-2 text-sm"><input type="checkbox" name="clientVisible" value="true"/>Share with client</label><button className="btn-secondary">Upload file</button></form><div className="mt-5 divide-y divide-white/10">{data.files.map(f=><div className="flex items-center gap-3 py-3 text-sm"><a className="min-w-0 flex-1 truncate font-semibold" href={`/api/admin/files/${f.id}/download`}>{f.filename}</a><label className="flex items-center gap-2"><input type="checkbox" checked={f.clientVisible} onChange={e=>filePatch(f.id,{clientVisible:e.target.checked})}/>Shared</label><button className="text-red-400" onClick={async()=>{if(confirm('Delete this file?')){await api(`/admin/files/${f.id}`,{method:'DELETE'});load()}}}>Delete</button></div>)}</div></div>
         <div className="surface rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Invoices</h2>
@@ -504,6 +519,8 @@ export function ProjectDetail({ id }: { id: string }) {
           </div>
         </div>
       </section>
+      {deleteBriefTarget && <Modal title="Delete brief?" onClose={()=>!deleting&&setDeleteBriefTarget(null)}><p className="leading-7 text-[var(--ink-soft)]">This brief will be removed from the assigned project. This action cannot be undone.</p><p className="mt-4 font-semibold">{deleteBriefTarget.title}</p><div className="mt-7 flex justify-end gap-3"><button className="btn-secondary" type="button" onClick={()=>setDeleteBriefTarget(null)} disabled={deleting}>Cancel</button><button className="rounded-[8px] bg-red-600 px-4 py-3 font-semibold text-white disabled:opacity-50" type="button" onClick={deleteBrief} disabled={deleting}>{deleting?'Deleting…':'Delete brief'}</button></div></Modal>}
+      {modal === "delete-project" && <Modal title="Delete project permanently?" onClose={()=>!deleting&&setModal(null)}><p className="leading-7 text-[var(--ink-soft)]">This will permanently delete the project and its exclusively related data, including tasks, briefs, and project-specific documents. Financial records will be retained.</p><p className="mt-5 font-semibold">Type <span className="text-[var(--ink)]">{data.name}</span> to confirm.</p><label className="label mt-4">Project name<input className="field" value={deleteConfirmation} onChange={event=>setDeleteConfirmation(event.target.value)} autoComplete="off" /></label><div className="mt-7 flex justify-end gap-3"><button className="btn-secondary" type="button" onClick={()=>setModal(null)} disabled={deleting}>Cancel</button><button className="rounded-[8px] bg-red-600 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" type="button" onClick={deleteProject} disabled={deleteConfirmation!==data.name||deleting}>{deleting?'Deleting…':'Delete permanently'}</button></div></Modal>}
       {modal === "project" && (
         <Modal title="Edit project" onClose={() => setModal(null)}>
           <form onSubmit={updateProject} className="grid gap-4">

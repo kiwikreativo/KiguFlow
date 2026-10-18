@@ -1,8 +1,8 @@
 import astro from '@astrojs/cloudflare/entrypoints/server';
 import { runScheduledNotifications } from './server/notifications';
 import { createDatabase } from './server/db';
-import { markScanFailed, processUploadScan, type UploadScanMessage } from './server/uploads';
-import { secureResponse } from './server/response-security';
+import { runFileCleanup } from './server/file-cleanup';
+import { retryProblemReportNotifications } from './server/problem-reports';
 
 export default {
   async fetch(request, env, ctx) {
@@ -23,6 +23,7 @@ export default {
     }
   },
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(runScheduledNotifications(env, new Date(controller.scheduledTime)));
+    const db = createDatabase(env.DATABASE_URL);
+    ctx.waitUntil(Promise.all([runScheduledNotifications(env, new Date(controller.scheduledTime)), runFileCleanup(env, db), retryProblemReportNotifications(env, db)]));
   },
 } satisfies ExportedHandler<RuntimeEnv>;

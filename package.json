@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --local --env-file .env",
+    "dev": "astro dev",
     "dev:astro": "astro dev",
     "build": "astro check && astro build",
     "check": "astro check && tsc --noEmit",
@@ -49,20 +49,8 @@
     "drizzle-kit": "latest",
     "prettier": "latest",
     "tsx": "latest",
-    "typescript": "latest",
+    "typescript": "^6.0.0",
     "vitest": "latest",
-    "wrangler": "4.148.0"
-  },
-  "overrides": {
-    "http-cache-semantics": "4.3.0",
-    "sharp": "0.35.5",
-    "source-map-js": "1.2.2",
-    "miniflare": {
-      "undici": "7.29.1",
-      "sharp": "0.35.5"
-    },
-    "@cloudflare/vite-plugin": {
-      "wrangler": "4.148.0"
-    }
+    "wrangler": "4.149.0"
   }
 }

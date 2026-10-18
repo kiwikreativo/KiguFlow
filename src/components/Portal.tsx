@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Check,
   CalendarBlank,
@@ -8,8 +8,10 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Modal } from "@/components/admin/Modal";
 import { toast, Toaster } from "sonner";
 import { api } from "@/lib/api";
+import { projectStatusLabel } from "@/lib/project-status";
 import { translator, translateStatus, type Language } from '@/i18n';
 type PortalData = {
   id: string;
@@ -48,8 +50,11 @@ type PortalData = {
   activity: Array<{ id: string; summary: string; createdAt: string }>;
 };
 export function Portal({ token }: { token: string }) {
+  const reportRequestKey = useRef<string | null>(null);
   const [data, setData] = useState<PortalData | null>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [reportOpen, setReportOpen] = useState(false),
+    [reporting, setReporting] = useState(false);
   const load = () =>
     api<PortalData>(`/portal/${token}`)
       .then(setData)
@@ -69,6 +74,7 @@ export function Portal({ token }: { token: string }) {
     }
   }
   async function upload(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget;try{await api(`/portal/${token}/files`,{method:'POST',body:new FormData(form)});form.reset();toast.success(t('fileUploaded'));load()}catch{toast.error(t('uploadError'))}}
+  async function reportProblem(e:FormEvent<HTMLFormElement>){e.preventDefault();if(reporting)return;setReporting(true);const form=e.currentTarget;const values=new FormData(form);reportRequestKey.current??=crypto.randomUUID();try{await api(`/portal/${token}/problem-reports`,{method:'POST',body:JSON.stringify({requestKey:reportRequestKey.current,category:values.get('category'),subject:values.get('subject'),description:values.get('description')})});reportRequestKey.current=null;form.reset();setReportOpen(false);toast.success(t('reportSuccess'),{description:t('reportSuccessDetail')})}catch{toast.error(t('reportError'))}finally{setReporting(false)}}
   if (error)
     return (
       <main className="grid min-h-screen place-items-center bg-[var(--paper)] p-6 text-[var(--ink)]">
@@ -91,10 +97,11 @@ export function Portal({ token }: { token: string }) {
   return (
     <main className="client-portal min-h-screen bg-[#010A04] pb-24 text-white">
       <Toaster richColors />
+      {reportOpen && <Modal title={t('reportProblem')} onClose={()=>!reporting&&setReportOpen(false)}><p className="mb-5 leading-7 text-[var(--ink-soft)]">{t('reportDescription')}</p><form className="grid gap-4" onSubmit={reportProblem}><label className="label">{t('problemCategory')}<select className="field" name="category" required><option value="technical">{t('technicalIssue')}</option><option value="portal_access">{t('portalAccess')}</option><option value="files_documents">{t('filesDocuments')}</option><option value="tasks_project">{t('tasksProject')}</option><option value="other">{t('other')}</option></select></label><label className="label">{t('subject')}<input className="field" name="subject" minLength={3} maxLength={160} required placeholder={t('subjectPlaceholder')} /></label><label className="label">{t('problemDetails')}<textarea className="field min-h-36" name="description" minLength={10} maxLength={5000} required placeholder={t('problemPlaceholder')} /></label><div className="mt-3 flex justify-end gap-3"><button className="btn-secondary" type="button" disabled={reporting} onClick={()=>setReportOpen(false)}>{t('cancel')}</button><button className="btn-primary" disabled={reporting}>{reporting?t('sendingReport'):t('sendReport')}</button></div></form></Modal>}
       <header className="border-b border-white/10 bg-[#050f08] px-5 py-5 text-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <strong className="text-lg tracking-[-.04em] text-[#4ADE80]">KiguFlow</strong>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             <a
               href="https://calendly.com/guillermo-obandoc/45min"
               target="_blank"
@@ -104,6 +111,7 @@ export function Portal({ token }: { token: string }) {
               <CalendarBlank />
               {t('bookCall')}
             </a>
+            <button type="button" className="btn-secondary px-3 py-2 text-sm" onClick={()=>setReportOpen(true)}><WarningCircle />{t('reportProblem')}</button>
             <span className="hidden items-center gap-2 text-xs text-white/55 sm:flex">
               <LockKey />
               {t('privatePortal')}
@@ -135,8 +143,8 @@ export function Portal({ token }: { token: string }) {
           </div>
           <div className="rounded-[8px] border border-white/10 bg-[#191C21] p-6 text-white md:p-9">
             <p className="text-sm text-white/50">{t('currentStatus')}</p>
-            <p className="mt-2 text-2xl font-semibold capitalize">
-              {translateStatus(language,data.status)}
+            <p className="project-status project-status-text mt-2 text-2xl font-semibold" data-status={data.status}>
+              {language === 'en' ? projectStatusLabel(data.status) : translateStatus(language,data.status)}
             </p>
             <p className="mt-10 text-sm text-white/50">{t('nextDate')}</p>
             <p className="mt-1 font-semibold">
