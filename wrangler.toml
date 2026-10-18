@@ -14,6 +14,16 @@ binding = "ASSETS"
 binding = "FILES"
 bucket_name = "kiguflow-files"
 
+[[queues.producers]]
+binding = "UPLOAD_SCANS"
+queue = "kiguflow-upload-scans"
+
+[[queues.consumers]]
+queue = "kiguflow-upload-scans"
+max_batch_size = 1
+max_retries = 3
+dead_letter_queue = "kiguflow-upload-scan-failures"
+
 [vars]
 APP_URL = "https://kiguflow.com"
 ALLOWED_ORIGINS = "https://kiguflow.com"

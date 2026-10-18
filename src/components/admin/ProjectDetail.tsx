@@ -50,7 +50,7 @@ type Project = {
   invoices: Invoice[];
   progress: number;
   activity: Array<{ id: string; summary: string; createdAt: string }>;
-  files: Array<{id:string;filename:string;category:string;size:number;clientVisible:boolean;uploadedBy:string}>;
+  files: Array<{id:string;filename:string;category:string;size:number;clientVisible:boolean;uploadedBy:string;scanStatus:'pending'|'clean'|'rejected'|'failed'}>;
   documents: Array<{id:string;title:string;category:string;status:string}>;
   brief: {id:string;title:string;status:string}|null;
   portalTokens: Array<{id:string;expiresAt:string|null;revokedAt:string|null;createdAt:string}>;

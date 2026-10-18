@@ -18,7 +18,7 @@ export const trustedOrigin = createMiddleware<{ Bindings: RuntimeEnv }>(async (c
   if (!['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
     const origin = c.req.header('Origin');
     const allowed = c.env.ALLOWED_ORIGINS.split(',').map((item) => item.trim());
-    if (origin && !allowed.includes(origin)) return fail(c, 403, 'ORIGIN_NOT_ALLOWED', 'Request origin is not allowed.');
+    if (!origin || !allowed.includes(origin)) return fail(c, 403, 'ORIGIN_NOT_ALLOWED', 'Request origin is not allowed.');
   }
   await next();
 });

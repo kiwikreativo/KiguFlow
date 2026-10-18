@@ -50,6 +50,13 @@ describe('admin workflow validation', () => {
     const portalHandler=source.slice(source.indexOf("app.get('/portal/:token'"),source.indexOf("app.post('/portal/:token/tasks"));
     expect(portalHandler).not.toContain('briefResponses');
     expect(portalHandler).not.toContain('projectBriefs');
+    expect(portalHandler).toContain('db.select({ id: projectPhases.id, name: projectPhases.name, status: projectPhases.status })');
+    expect(portalHandler).not.toContain('projectPhases.description');
+  });
+
+  it('requires an approved Origin for every mutation', () => {
+    const source = readFileSync(fileURLToPath(new URL('./middleware.ts', import.meta.url)), 'utf8');
+    expect(source).toContain('if (!origin || !allowed.includes(origin))');
   });
 
   it('keeps legacy brief seed definitions and adds Geographic SEO without destructive writes', () => {

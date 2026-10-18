@@ -14,6 +14,9 @@ type RuntimeEnv = {
   CLIQ_TOUR_URL_ES?: string;
   KICKOFF_CALENDAR_URL?: string;
   FILES: R2Bucket;
+  UPLOAD_SCANS: Queue<{ fileId: string }>;
+  SCANNER_URL: string;
+  SCANNER_AUTH_TOKEN: string;
   ASSETS: Fetcher;
 };
 

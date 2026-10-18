@@ -1,0 +1,30 @@
+name: Encrypted operational backup
+on:
+  schedule:
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    environment: backups
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKUP_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: npm run backup:encrypted
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_KMS_KEY_ID: ${{ vars.AWS_KMS_KEY_ID }}
+          BACKUP_R2_BUCKET: ${{ vars.BACKUP_R2_BUCKET }}
+          BACKUP_R2_ENDPOINT: ${{ vars.BACKUP_R2_ENDPOINT }}
+          BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
+          BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
