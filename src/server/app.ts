@@ -64,14 +64,17 @@ app.post('/admin/session/activity', (c) => ok(c, { active: true }));
 app.get('/admin/service-catalog', async (c) => { const db=c.get('db'); const [serviceRows,bundleRows,items]=await Promise.all([db.select().from(services).where(eq(services.active,true)).orderBy(asc(services.name)),db.select().from(serviceBundles).where(eq(serviceBundles.active,true)).orderBy(asc(serviceBundles.name)),db.select().from(serviceBundleItems).orderBy(asc(serviceBundleItems.sortOrder))]); return ok(c,{services:serviceRows,bundles:bundleRows.map(bundle=>({...bundle,serviceIds:items.filter(item=>item.bundleId===bundle.id).map(item=>item.serviceId)}))}); });
 app.get('/admin/dashboard', async (c) => {
   const db = c.get('db');
-  const [active, waiting, overdue, dueSoon, recent] = await Promise.all([
-    db.select({ value: count() }).from(projects).where(inArray(projects.status, ['onboarding', 'planning', 'in_progress', 'waiting_for_client', 'review'])),
-    db.select({ value: count() }).from(tasks).where(and(eq(tasks.requiresClientAction, true), sql`${tasks.status} != 'completed'`)),
-    db.select({ value: count() }).from(tasks).where(and(sql`${tasks.dueDate} < CURRENT_DATE`, sql`${tasks.status} != 'completed'`)),
-    db.select({ value: count() }).from(tasks).where(and(sql`${tasks.dueDate} BETWEEN CURRENT_DATE AND CURRENT_DATE + 7`, sql`${tasks.status} != 'completed'`)),
+  const [counts, recent] = await Promise.all([
+    db.execute<{ activeProjects: number; clientActions: number; overdueTasks: number; dueSoon: number }>(sql`
+      select
+        (select count(*)::int from ${projects} where ${inArray(projects.status, ['onboarding', 'planning', 'in_progress', 'waiting_for_client', 'review'])}) as "activeProjects",
+        (select count(*)::int from ${tasks} where ${tasks.requiresClientAction} = true and ${tasks.status} != 'completed') as "clientActions",
+        (select count(*)::int from ${tasks} where ${tasks.dueDate} < CURRENT_DATE and ${tasks.status} != 'completed') as "overdueTasks",
+        (select count(*)::int from ${tasks} where ${tasks.dueDate} between CURRENT_DATE and CURRENT_DATE + 7 and ${tasks.status} != 'completed') as "dueSoon"
+    `),
     db.select({ id: projects.id, name: projects.name, status: projects.status, dueDate: projects.dueDate, clientName: clients.name }).from(projects).innerJoin(clients, eq(projects.clientId, clients.id)).orderBy(desc(projects.updatedAt)).limit(6),
   ]);
-  return ok(c, { activeProjects: active[0].value, clientActions: waiting[0].value, overdueTasks: overdue[0].value, dueSoon: dueSoon[0].value, recent });
+  return ok(c, { ...counts.rows[0], recent });
 });
 
 app.get('/admin/clients', async (c) => { const q = c.req.query('search') ?? ''; const status = c.req.query('status'); const filters = [isNull(clients.archivedAt)]; if (q) filters.push(or(ilike(clients.name, `%${q}%`), ilike(clients.email, `%${q}%`), ilike(clients.companyName, `%${q}%`))!); if (status) filters.push(eq(clients.status, status as typeof clients.status.enumValues[number])); return ok(c, await c.get('db').select().from(clients).where(and(...filters)).orderBy(desc(clients.createdAt))); });

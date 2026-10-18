@@ -44,7 +44,12 @@ button { cursor: pointer; }
 .field { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--field); padding: .72rem .85rem; color: var(--ink); }
 .field-search { padding-left: 2.5rem; }
 select.field {
-  appearance: auto;
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23a1a1aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .75rem center;
+  background-size: 1rem;
 }
 .field:focus { border-color: var(--accent-text); outline: 3px solid rgba(74,222,128,.16); }
 .label { display: grid; gap: .4rem; font-size: .72rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
