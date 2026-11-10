@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Archive, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
-import { api } from "@/lib/api";
+import { api, isAbortError, isAuthenticationError } from "@/lib/api";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
 type Client = {
@@ -16,12 +16,16 @@ export function Clients() {
   const [rows, setRows] = useState<Client[]>([]),
     [open, setOpen] = useState(false),
     [search, setSearch] = useState("");
-  const load = () =>
-    api<Client[]>(`/admin/clients?search=${encodeURIComponent(search)}`)
-      .then(setRows)
-      .catch(() => (location.href = "/login"));
+  const load = (signal?: AbortSignal) =>
+    api<Client[]>(`/admin/clients?search=${encodeURIComponent(search)}`, { signal }).then(setRows);
   useEffect(() => {
-    void load();
+    const controller = new AbortController();
+    void load(controller.signal).catch((error) => {
+      if (isAbortError(error)) return;
+      if (isAuthenticationError(error)) location.href = "/login";
+      else toast.error(error instanceof Error ? error.message : "Could not load clients");
+    });
+    return () => controller.abort();
   }, [search]);
   async function create(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,7 +44,7 @@ export function Clients() {
       });
       setOpen(false);
       toast.success("Client created");
-      load();
+      await load();
     } catch (x) {
       toast.error(x instanceof Error ? x.message : "Could not create client");
     }
@@ -54,7 +58,7 @@ export function Clients() {
       return;
     await api(`/admin/clients/${id}/archive`, { method: "POST" });
     toast.success("Client archived");
-    load();
+    await load();
   }
   return (
     <Shell

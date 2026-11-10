@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { toast, Toaster } from 'sonner';
-import { api } from '@/lib/api';
+import { api, isAbortError, isAuthenticationError } from '@/lib/api';
 import { Shell } from './Shell';
 
 type Item = { id:string; title:string; assigneeType:string; priority:string; clientVisible:boolean; requiresClientAction:boolean };
@@ -9,9 +9,9 @@ type Template = { id:string; name:string; description:string|null; phases?:Phase
 
 export function Templates() {
   const [list,setList]=useState<Template[]>([]), [selected,setSelected]=useState<Template|null>(null);
-  const refresh=()=>api<Template[]>('/admin/templates').then(setList);
+  const refresh=(signal?:AbortSignal)=>api<Template[]>('/admin/templates',{signal}).then(setList);
   const open=(id:string)=>api<Template>(`/admin/templates/${id}`).then(setSelected);
-  useEffect(()=>{void refresh()},[]);
+  useEffect(()=>{const controller=new AbortController();void refresh(controller.signal).catch(error=>{if(isAbortError(error))return;if(isAuthenticationError(error))location.href='/login';else toast.error(error instanceof Error?error.message:'Could not load templates')});return()=>controller.abort()},[]);
   async function create(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget;const f=new FormData(form);const row=await api<Template>('/admin/templates',{method:'POST',body:JSON.stringify({name:f.get('name'),description:f.get('description')||null})});form.reset();await refresh();await open(row.id);toast.success('Template created')}
   async function phase(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!selected)return;const form=e.currentTarget;const f=new FormData(form);await api(`/admin/templates/${selected.id}/phases`,{method:'POST',body:JSON.stringify({name:f.get('name'),description:null,sortOrder:selected.phases?.length||0})});form.reset();await open(selected.id)}
   async function task(e:FormEvent<HTMLFormElement>,phaseId:string){e.preventDefault();const form=e.currentTarget;const f=new FormData(form);await api(`/admin/template-phases/${phaseId}/tasks`,{method:'POST',body:JSON.stringify({title:f.get('title'),description:null,priority:'medium',assigneeType:f.get('assigneeType'),clientVisible:f.get('assigneeType')==='client',requiresClientAction:f.get('assigneeType')==='client',sortOrder:0})});form.reset();if(selected)await open(selected.id)}

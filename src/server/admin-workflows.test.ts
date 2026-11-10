@@ -18,6 +18,13 @@ describe('admin workflow validation', () => {
     expect(source.match(/app\.patch\('\/admin\/invoices\/:id'/g)).toHaveLength(1);
   });
 
+  it('does not run global file cleanup when deleting a project without files', () => {
+    const source = readFileSync(fileURLToPath(new URL('./app.ts', import.meta.url)), 'utf8');
+    const start = source.indexOf("app.delete('/admin/projects/:id'");
+    const handler = source.slice(start, source.indexOf("app.", start + 4));
+    expect(handler).toContain('if (projectFiles.length) await runFileCleanup');
+  });
+
   it('accepts combined task status and project filters', () => {
     const query = { status: 'review', projectId: 'dff1602f-6482-427e-b10d-b91fe6facea3' };
     expect(taskListQuerySchema.parse(query)).toEqual(query);
@@ -43,6 +50,13 @@ describe('admin workflow validation', () => {
     const portalHandler=source.slice(source.indexOf("app.get('/portal/:token'"),source.indexOf("app.post('/portal/:token/tasks"));
     expect(portalHandler).not.toContain('briefResponses');
     expect(portalHandler).not.toContain('projectBriefs');
+    expect(portalHandler).toContain('db.select({ id: projectPhases.id, name: projectPhases.name, status: projectPhases.status })');
+    expect(portalHandler).not.toContain('projectPhases.description');
+  });
+
+  it('requires an approved Origin for every mutation', () => {
+    const source = readFileSync(fileURLToPath(new URL('./middleware.ts', import.meta.url)), 'utf8');
+    expect(source).toContain('if (!origin || !allowed.includes(origin))');
   });
 
   it('keeps legacy brief seed definitions and adds Geographic SEO without destructive writes', () => {

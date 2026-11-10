@@ -1,0 +1,36 @@
+---
+import Base from '@/layouts/Base.astro';
+import { ThemeToggle } from '@/components/ThemeToggle';
+
+Astro.response.status = 404;
+const spanish = (Astro.request.headers.get('accept-language') || '').toLowerCase().startsWith('es');
+const copy = spanish ? {
+  title: 'Parece que esta página no está disponible.',
+  description: 'La página que buscás no existe o puede que haya cambiado de ubicación.',
+  dashboard: 'Volver al panel',
+  home: 'Ir al inicio',
+} : {
+  title: 'Looks like this page went missing.',
+  description: "The page you're looking for doesn't exist or may have moved.",
+  dashboard: 'Back to dashboard',
+  home: 'Go to homepage',
+};
+---
+<Base title={`404 — KiguFlow`} description={copy.description}>
+  <main class="relative grid min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--paper)] px-5 py-8 text-[var(--ink)]">
+    <div class="vertex-grid pointer-events-none absolute inset-0 opacity-30"></div>
+    <nav class="relative mx-auto flex w-full max-w-6xl items-center justify-between self-start">
+      <a href="/" class="text-xl font-semibold tracking-[-.05em] text-[var(--accent-text)]">KiguFlow</a>
+      <ThemeToggle client:load />
+    </nav>
+    <section class="relative mx-auto flex w-full max-w-5xl flex-col justify-center py-24 md:py-36">
+      <p class="vertex-mono text-sm font-semibold tracking-[.16em] text-[var(--accent-text)]">404</p>
+      <h1 class="mt-5 max-w-5xl text-[clamp(3rem,8vw,7rem)] font-semibold leading-[.92] tracking-[-.065em]">{copy.title}</h1>
+      <p class="mt-7 max-w-2xl text-lg leading-8 text-[var(--ink-soft)]">{copy.description}</p>
+      <div class="mt-10 flex flex-wrap gap-3">
+        <a class="btn-primary" href="/dashboard">{copy.dashboard}</a>
+        <a class="btn-secondary" href="/">{copy.home}</a>
+      </div>
+    </section>
+  </main>
+</Base>

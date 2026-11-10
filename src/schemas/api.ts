@@ -14,3 +14,4 @@ export const taskListQuerySchema = z.object({ status: z.enum(['todo', 'in_progre
 export const invoiceStatusSchema = z.enum(['draft', 'pending', 'half_paid', 'paid', 'overdue', 'cancelled']);
 export const invoiceStatusUpdateSchema = z.object({ status: invoiceStatusSchema }).strict();
 export const invoiceSchema = z.object({ invoiceNumber: z.string().trim().min(1).max(60), description: z.string().trim().min(1).max(1000), amountMinor: z.number().int().nonnegative(), currency: z.enum(['CRC', 'USD']), status: invoiceStatusSchema.default('draft'), issueDate: z.string().date(), dueDate: optionalDate, pdfFileId: id.nullable().optional() });
+export const problemReportSchema = z.object({ requestKey: id, category: z.enum(['technical', 'portal_access', 'files_documents', 'tasks_project', 'other']), subject: z.string().trim().min(3).max(160), description: z.string().trim().min(10).max(5000) }).strict();
