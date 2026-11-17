@@ -38,6 +38,12 @@ export function Projects() {
         setCatalog(d);
       });
   useEffect(() => {
+    // Dashboard "Create project" links to /projects?new=1
+    if (!new URLSearchParams(location.search).has("new")) return;
+    setOpen(true);
+    history.replaceState(null, "", location.pathname);
+  }, []);
+  useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal).catch((error) => {
       if (isAbortError(error)) return;

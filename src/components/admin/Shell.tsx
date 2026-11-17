@@ -122,7 +122,7 @@ export function Shell({
                       aria-label={`Toggle ${label}`}
                       aria-expanded={open}
                       onClick={() => toggle(label)}
-                      className="absolute inset-y-0 right-0 grid w-10 place-items-center text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-[var(--ink-soft)] hover:text-[var(--ink)]"
                     >
                       {caret}
                     </button>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Check, Copy, Plus, Trash } from "@phosphor-icons/react";
+import { ArrowsInLineVertical, ArrowsOutLineVertical, CaretDown, Check, Copy, Plus, Trash } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
 import { api, ApiRequestError, isAbortError, isAuthenticationError } from "@/lib/api";
 import { projectStatusLabel } from "@/lib/project-status";
@@ -70,7 +70,12 @@ export function ProjectDetail({ id }: { id: string }) {
     [inviting, setInviting] = useState(false),
     [deleteBriefTarget, setDeleteBriefTarget] = useState<Brief | null>(null),
     [deleteConfirmation, setDeleteConfirmation] = useState(""),
-    [deleting, setDeleting] = useState(false);
+    [deleting, setDeleting] = useState(false),
+    // Manual open/closed overrides; without one, completed phases start closed.
+    [phaseOpen, setPhaseOpen] = useState<Record<string, boolean>>({});
+  const isPhaseOpen = (p: Phase) => phaseOpen[p.id] ?? p.status !== "completed";
+  const setPhaseOverride = (phaseId: string, open: boolean | undefined) =>
+    setPhaseOpen(({ [phaseId]: _, ...rest }) => (open === undefined ? rest : { ...rest, [phaseId]: open }));
   const handleLoadError = (error:unknown) => {
     if (isAbortError(error)) return;
     if (isAuthenticationError(error)) location.href = "/login";
@@ -333,7 +338,20 @@ export function ProjectDetail({ id }: { id: string }) {
           <h2 className="text-2xl font-semibold tracking-[-.04em]">
             Project tasks
           </h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {data.phases.length > 0 && (() => {
+              const allClosed = data.phases.every((p) => !isPhaseOpen(p));
+              return (
+                <button
+                  type="button"
+                  className="tool-btn"
+                  onClick={() => setPhaseOpen(Object.fromEntries(data.phases.map((p) => [p.id, allClosed])))}
+                >
+                  {allClosed ? <ArrowsOutLineVertical size={15} aria-hidden="true" /> : <ArrowsInLineVertical size={15} aria-hidden="true" />}
+                  {allClosed ? "Expand all" : "Collapse all"}
+                </button>
+              );
+            })()}
             <button onClick={() => setModal("phase")} className="btn-secondary">
               <Plus />
               Add phase
@@ -345,9 +363,20 @@ export function ProjectDetail({ id }: { id: string }) {
           </div>
         </div>
         <div className="grid gap-4">
-          {data.phases.map((phase) => (
-            <article className="surface rounded-2xl">
-              <header className="flex items-center justify-between gap-4 border-b border-[#deddd6] px-5 py-4">
+          {data.phases.map((phase) => {
+            const open = isPhaseOpen(phase);
+            return (
+            <article key={phase.id} className="surface rounded-2xl">
+              <header className={`flex items-center justify-between gap-4 px-5 py-4 ${open ? "border-b border-[#deddd6]" : ""}`}>
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  aria-label={`${open ? "Collapse" : "Expand"} ${phase.name}`}
+                  onClick={() => setPhaseOverride(phase.id, !open)}
+                  className="-ml-2 grid h-7 w-7 shrink-0 place-items-center rounded-md text-[var(--ink-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
+                >
+                  <CaretDown size={14} weight="bold" className={`transition-transform ${open ? "" : "-rotate-90"}`} />
+                </button>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold">{phase.name}</h3>
                   <p className="text-xs text-[#777]">
@@ -359,13 +388,15 @@ export function ProjectDetail({ id }: { id: string }) {
                 <select
                   aria-label={`${phase.name} status`}
                   value={phase.status}
-                  onChange={(e) =>
-                    mutate(
+                  onChange={(e) => {
+                    // Let the new status decide: completing a phase closes it.
+                    setPhaseOverride(phase.id, undefined);
+                    void mutate(
                       `/admin/phases/${phase.id}`,
                       { status: e.target.value },
                       "PATCH",
-                    )
-                  }
+                    );
+                  }}
                   className="field w-auto max-w-[50%] shrink-0 text-sm"
                 >
                   <option value="not_started">Not started</option>
@@ -373,7 +404,7 @@ export function ProjectDetail({ id }: { id: string }) {
                   <option value="completed">Completed</option>
                 </select>
               </header>
-              <div className="divide-y divide-[#e1e0d9]">
+              {open && <div className="divide-y divide-[#e1e0d9]">
                 {byPhase[phase.id]?.map((task) => (
                   <div
                     className={`group grid items-center gap-3 px-5 py-4 ${task.status === "completed" ? "opacity-55" : ""} md:grid-cols-[auto_1fr_150px_120px_auto]`}
@@ -452,9 +483,10 @@ export function ProjectDetail({ id }: { id: string }) {
                     No tasks in this phase.
                   </p>
                 )}
-              </div>
+              </div>}
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
       <section className="mt-10 grid gap-4 lg:grid-cols-2">

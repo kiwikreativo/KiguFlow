@@ -107,6 +107,11 @@ export function Tasks() {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Dashboard search links to /tasks?q=…
+    const q = new URLSearchParams(location.search).get("q");
+    if (q) setQuery(q);
+  }, []);
+  useEffect(() => {
     const controller = new AbortController();
     api<ViewTask[]>("/admin/tasks", { signal: controller.signal })
       .then((data) => {
