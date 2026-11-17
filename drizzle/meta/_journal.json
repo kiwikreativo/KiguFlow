@@ -64,6 +64,13 @@
       "when": 1792195200000,
       "tag": "0006_file_quarantine",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792195200001,
+      "tag": "0008_task_assignee_name",
+      "breakpoints": true
     }
   ]
 }

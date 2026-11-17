@@ -20,6 +20,7 @@ type Task = {
   status: string;
   priority: string;
   assigneeType: string;
+  assigneeName: string | null;
   dueDate: string | null;
   clientVisible: boolean;
   requiresClientAction: boolean;
@@ -117,6 +118,7 @@ export function ProjectDetail({ id }: { id: string }) {
       status: f.get("status"),
       priority: f.get("priority"),
       assigneeType: f.get("assigneeType"),
+      assigneeName: f.get("assigneeName") || null,
       dueDate: f.get("dueDate") || null,
       clientVisible: f.get("clientVisible") === "on",
       requiresClientAction: f.get("requiresClientAction") === "on",
@@ -404,7 +406,7 @@ export function ProjectDetail({ id }: { id: string }) {
                         <span className="capitalize">{task.priority}</span>
                         <span>·</span>
                         <span>
-                          {task.assigneeType === "client" ? "Client" : "Admin"}
+                          {task.assigneeName || (task.assigneeType === "client" ? "Client" : "Admin")}
                         </span>
                         {task.requiresClientAction && (
                           <span className="font-semibold text-[#8a571f]">
@@ -587,6 +589,10 @@ export function ProjectDetail({ id }: { id: string }) {
                   <option value="admin">Admin</option>
                   <option value="client">Client</option>
                 </select>
+              </label>
+              <label className="label">
+                Assignee name
+                <input name="assigneeName" maxLength={120} className="field" placeholder="e.g. Joss Segura" />
               </label>
               <label className="label">
                 Due date
