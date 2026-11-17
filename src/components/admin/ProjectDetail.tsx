@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Check, Copy, Plus, Trash } from "@phosphor-icons/react";
+import { ArrowsInLineVertical, ArrowsOutLineVertical, CalendarBlank, CaretDown, CheckCircle, Copy, Plus, Trash } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
 import { api, ApiRequestError, isAbortError, isAuthenticationError } from "@/lib/api";
 import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
+import { PriorityDate } from "./Tasks";
+import { assigneeOf, initials } from "./tasksView";
 type Phase = {
   id: string;
   name: string;
@@ -20,6 +22,7 @@ type Task = {
   status: string;
   priority: string;
   assigneeType: string;
+  assigneeName: string | null;
   dueDate: string | null;
   clientVisible: boolean;
   requiresClientAction: boolean;
@@ -69,7 +72,12 @@ export function ProjectDetail({ id }: { id: string }) {
     [inviting, setInviting] = useState(false),
     [deleteBriefTarget, setDeleteBriefTarget] = useState<Brief | null>(null),
     [deleteConfirmation, setDeleteConfirmation] = useState(""),
-    [deleting, setDeleting] = useState(false);
+    [deleting, setDeleting] = useState(false),
+    // Manual open/closed overrides; without one, completed phases start closed.
+    [phaseOpen, setPhaseOpen] = useState<Record<string, boolean>>({});
+  const isPhaseOpen = (p: Phase) => phaseOpen[p.id] ?? p.status !== "completed";
+  const setPhaseOverride = (phaseId: string, open: boolean | undefined) =>
+    setPhaseOpen(({ [phaseId]: _, ...rest }) => (open === undefined ? rest : { ...rest, [phaseId]: open }));
   const handleLoadError = (error:unknown) => {
     if (isAbortError(error)) return;
     if (isAuthenticationError(error)) location.href = "/login";
@@ -117,6 +125,7 @@ export function ProjectDetail({ id }: { id: string }) {
       status: f.get("status"),
       priority: f.get("priority"),
       assigneeType: f.get("assigneeType"),
+      assigneeName: f.get("assigneeName") || null,
       dueDate: f.get("dueDate") || null,
       clientVisible: f.get("clientVisible") === "on",
       requiresClientAction: f.get("requiresClientAction") === "on",
@@ -223,10 +232,10 @@ export function ProjectDetail({ id }: { id: string }) {
     <Shell
       title={data.name}
       action={
-        <div className="flex gap-2"><button className="btn-secondary" onClick={portal}>
-          <Copy />
+        <div className="flex flex-wrap items-center gap-2"><button className="btn-secondary" onClick={portal}>
+          <Copy size={15} aria-hidden="true" />
           Copy portal link
-        </button><button className="btn-primary" onClick={openInvitation}>Email invitation</button><button className="rounded-[8px] border border-red-500/40 px-3 py-2 text-sm font-semibold text-red-400" onClick={()=>{setDeleteConfirmation('');setModal('delete-project')}}>Delete project</button></div>
+        </button><button className="btn-primary" onClick={openInvitation}>Email invitation</button><button className="btn-secondary !border-red-500/40 text-red-500" onClick={()=>{setDeleteConfirmation('');setModal('delete-project')}}>Delete project</button></div>
       }
     >
       <Toaster richColors />
@@ -264,18 +273,18 @@ export function ProjectDetail({ id }: { id: string }) {
         </Modal>
       )}
       <section className="grid gap-3 lg:grid-cols-[1.25fr_.75fr]">
-        <div className="surface rounded-2xl p-6">
-          <div className="flex items-start justify-between gap-4">
+        <div className="dash-panel p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[#747b77]">
+              <p className="text-sm text-[var(--ink-soft)]">
                 {data.clientName} · {data.serviceType || "Custom project"}
               </p>
-              <p className="mt-5 max-w-2xl leading-7">
+              <p className="mt-3 max-w-2xl text-[15px] leading-7">
                 {data.description || "No description has been added."}
               </p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
-              <button type="button" onClick={() => setModal("project")} className="btn-secondary">Edit project</button>
+              <button type="button" onClick={() => setModal("project")} className="tool-btn">Edit project</button>
               <select
                 aria-label="Project status"
                 value={data.status}
@@ -298,42 +307,62 @@ export function ProjectDetail({ id }: { id: string }) {
               </select>
             </div>
           </div>
-          <div className="mt-10">
-            <div className="mb-2 flex justify-between text-sm">
+          <div className="mt-8">
+            <div className="mb-2 flex justify-between text-xs text-[var(--ink-soft)]">
               <span>Overall progress</span>
-              <strong>{data.progress}%</strong>
+              <strong className="text-[var(--ink)]">{data.progress}%</strong>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-[#dcdcd4]">
-              <div
-                className="h-full rounded-full bg-[#77953b] transition-all"
-                style={{ width: `${data.progress}%` }}
-              />
-            </div>
+            <span className="group-progress" style={{ width: "100%", height: 6 }} role="progressbar" aria-valuenow={data.progress} aria-valuemin={0} aria-valuemax={100} aria-label="Overall progress">
+              <span style={{ width: `${data.progress}%` }} />
+            </span>
           </div>
         </div>
-        <aside className="rounded-2xl bg-[#17201d] p-6 text-white">
-          <p className="text-sm text-white/50">Delivery snapshot</p>
-          <p className="mt-6 text-4xl font-semibold">
-            {data.tasks.filter((t) => t.status === "completed").length}
-            <span className="text-white/35"> / {data.tasks.length}</span>
-          </p>
-          <p className="text-sm text-white/60">tasks completed</p>
-          <p className="mt-8 text-sm text-white/50">Due date</p>
-          <p className="mt-1 font-semibold">
-            {data.dueDate
-              ? new Date(`${data.dueDate}T00:00:00`).toLocaleDateString()
-              : "Not set"}
-          </p>
+        <aside className="grid gap-3">
+          <div className="stat-card" data-tone="completed">
+            <div>
+              <p className="text-xs text-[var(--ink-soft)]">Tasks completed</p>
+              <p className="stat-value">
+                {data.tasks.filter((t) => t.status === "completed").length}
+                <span className="text-[var(--ink-faint)]"> / {data.tasks.length}</span>
+              </p>
+            </div>
+            <span className="stat-icon" aria-hidden="true"><CheckCircle size={22} weight="bold" /></span>
+          </div>
+          <div className="stat-card">
+            <div>
+              <p className="text-xs text-[var(--ink-soft)]">Due date</p>
+              <p className="stat-value">
+                {data.dueDate
+                  ? new Date(`${data.dueDate}T00:00:00`).toLocaleDateString()
+                  : "Not set"}
+              </p>
+            </div>
+            <span className="stat-icon" aria-hidden="true"><CalendarBlank size={22} weight="bold" /></span>
+          </div>
         </aside>
       </section>
       <section className="mt-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold tracking-[-.04em]">
-            Project tasks
-          </h2>
-          <div className="flex gap-2">
-            <button onClick={() => setModal("phase")} className="btn-secondary">
-              <Plus />
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold tracking-[-.03em]">Project tasks</h2>
+            <span className="count-pill">{data.tasks.length} tasks</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.phases.length > 0 && (() => {
+              const allClosed = data.phases.every((p) => !isPhaseOpen(p));
+              return (
+                <button
+                  type="button"
+                  className="tool-btn"
+                  onClick={() => setPhaseOpen(Object.fromEntries(data.phases.map((p) => [p.id, allClosed])))}
+                >
+                  {allClosed ? <ArrowsOutLineVertical size={15} aria-hidden="true" /> : <ArrowsInLineVertical size={15} aria-hidden="true" />}
+                  {allClosed ? "Expand all" : "Collapse all"}
+                </button>
+              );
+            })()}
+            <button onClick={() => setModal("phase")} className="tool-btn">
+              <Plus size={15} aria-hidden="true" />
               Add phase
             </button>
             <button onClick={() => setModal("task")} className="btn-primary">
@@ -342,130 +371,128 @@ export function ProjectDetail({ id }: { id: string }) {
             </button>
           </div>
         </div>
-        <div className="grid gap-4">
-          {data.phases.map((phase) => (
-            <article className="surface rounded-2xl">
-              <header className="flex items-center justify-between gap-4 border-b border-[#deddd6] px-5 py-4">
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold">{phase.name}</h3>
-                  <p className="text-xs text-[#777]">
-                    {byPhase[phase.id]?.filter((t) => t.status === "completed")
-                      .length || 0}{" "}
-                    / {byPhase[phase.id]?.length || 0} completed
-                  </p>
-                </div>
+        <div className="grid gap-3">
+          {data.phases.map((phase, phaseIndex) => {
+            const open = isPhaseOpen(phase);
+            const phaseTasks = byPhase[phase.id] ?? [];
+            const done = phaseTasks.filter((t) => t.status === "completed").length;
+            const progress = phaseTasks.length ? Math.round((done / phaseTasks.length) * 100) : 0;
+            return (
+            <section key={phase.id} className="task-group" aria-label={phase.name}>
+              <div className="task-group-head">
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  aria-label={`${open ? "Collapse" : "Expand"} ${phase.name}`}
+                  onClick={() => setPhaseOverride(phase.id, !open)}
+                  className="grid h-7 w-7 place-items-center rounded-md text-[var(--ink-soft)] hover:bg-[var(--surface-soft)]"
+                >
+                  <CaretDown size={14} weight="bold" className={`transition-transform ${open ? "" : "-rotate-90"}`} />
+                </button>
+                <span className="group-tile" aria-hidden="true">{phaseIndex + 1}</span>
+                <strong className="truncate text-[15px] font-semibold">{phase.name}</strong>
+                <span className="count-pill">{done} / {phaseTasks.length} done</span>
+                <span className="hidden items-center gap-3 sm:flex">
+                  <span className="group-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label={`${phase.name} progress`}>
+                    <span style={{ width: `${progress}%` }} />
+                  </span>
+                  <span className="text-xs text-[var(--ink-soft)]">{progress}%</span>
+                </span>
                 <select
                   aria-label={`${phase.name} status`}
                   value={phase.status}
-                  onChange={(e) =>
-                    mutate(
+                  onChange={(e) => {
+                    // Let the new status decide: completing a phase closes it.
+                    setPhaseOverride(phase.id, undefined);
+                    void mutate(
                       `/admin/phases/${phase.id}`,
                       { status: e.target.value },
                       "PATCH",
-                    )
-                  }
-                  className="field w-auto max-w-[50%] shrink-0 text-sm"
+                    );
+                  }}
+                  className="field ml-auto w-auto py-1.5 text-sm"
                 >
                   <option value="not_started">Not started</option>
                   <option value="active">Active</option>
                   <option value="completed">Completed</option>
                 </select>
-              </header>
-              <div className="divide-y divide-[#e1e0d9]">
-                {byPhase[phase.id]?.map((task) => (
-                  <div
-                    className={`group grid items-center gap-3 px-5 py-4 ${task.status === "completed" ? "opacity-55" : ""} md:grid-cols-[auto_1fr_150px_120px_auto]`}
-                  >
-                    <button
-                      aria-label={
-                        task.status === "completed"
-                          ? `Reopen ${task.title}`
-                          : `Complete ${task.title}`
-                      }
-                      onClick={() =>
-                        updateTask(task, {
-                          status:
-                            task.status === "completed" ? "todo" : "completed",
-                        })
-                      }
-                      className={`grid h-7 w-7 place-items-center rounded-full border ${task.status === "completed" ? "border-[#77953b] bg-[#77953b] text-white" : "border-[#a8aaa3]"}`}
-                    >
-                      {task.status === "completed" && <Check />}
-                    </button>
-                    <div>
-                      <strong
-                        className={
-                          task.status === "completed" ? "line-through" : ""
-                        }
-                      >
-                        {task.title}
-                      </strong>
-                      <div className="mt-1 flex flex-wrap gap-2 text-xs text-[#777]">
-                        <span className="capitalize">{task.priority}</span>
-                        <span>·</span>
-                        <span>
-                          {task.assigneeType === "client" ? "Client" : "Admin"}
-                        </span>
-                        {task.requiresClientAction && (
-                          <span className="font-semibold text-[#8a571f]">
-                            Action required
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <select
-                      value={task.status}
-                      onChange={(e) =>
-                        updateTask(task, { status: e.target.value })
-                      }
-                      className="field py-2 text-sm"
-                    >
-                      <option value="todo">To do</option>
-                      <option value="in_progress">In progress</option>
-                      <option value="blocked">Blocked</option>
-                      <option value="waiting_for_client">
-                        Waiting for client
-                      </option>
-                      <option value="review">Review</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                    <span className="text-sm text-[#727975]">
-                      {task.dueDate
-                        ? new Date(
-                            `${task.dueDate}T00:00:00`,
-                          ).toLocaleDateString()
-                        : "No due date"}
-                    </span>
-                    <button
-                      aria-label={`Delete ${task.title}`}
-                      onClick={() => deleteTask(task)}
-                      className="rounded-lg p-2 opacity-0 hover:bg-red-50 hover:text-red-700 group-hover:opacity-100 focus:opacity-100"
-                    >
-                      <Trash />
-                    </button>
-                  </div>
-                ))}
-                {!byPhase[phase.id]?.length && (
-                  <p className="p-6 text-sm text-[#777]">
-                    No tasks in this phase.
-                  </p>
-                )}
               </div>
-            </article>
-          ))}
+              {open && (phaseTasks.length ? (
+                <div className="task-table">
+                  <div className="task-head" aria-hidden="true">
+                    <span />
+                    <span>Task title</span>
+                    <span>Assignee</span>
+                    <span>Status</span>
+                    <span className="md:justify-self-end">Priority &amp; date</span>
+                  </div>
+                  {phaseTasks.map((task) => {
+                    const completed = task.status === "completed";
+                    const name = assigneeOf({ ...task, clientName: data.clientName });
+                    return (
+                    <div key={task.id} className="task-row group">
+                      <input
+                        type="checkbox"
+                        className="task-check"
+                        checked={completed}
+                        onChange={() => updateTask(task, { status: completed ? "todo" : "completed" })}
+                        aria-label={`Mark "${task.title}" as ${completed ? "to do" : "completed"}`}
+                      />
+                      <span className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className={`task-title${completed ? " is-done" : ""}`}>{task.title}</span>
+                        {task.requiresClientAction && <span className="count-pill">Action required</span>}
+                      </span>
+                      <span className="flex min-w-0 items-center gap-2 text-[13px] text-[var(--ink-soft)]">
+                        <span className="task-avatar" aria-hidden="true">{initials(name)}</span>
+                        <span className="truncate">{name}</span>
+                      </span>
+                      <select
+                        aria-label={`${task.title} status`}
+                        value={task.status}
+                        onChange={(e) => updateTask(task, { status: e.target.value })}
+                        className="field py-1.5 text-sm"
+                      >
+                        <option value="todo">To do</option>
+                        <option value="in_progress">In progress</option>
+                        <option value="blocked">Blocked</option>
+                        <option value="waiting_for_client">Waiting for client</option>
+                        <option value="review">Review</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                      <span className="flex items-center gap-1 md:justify-self-end">
+                        <PriorityDate task={task} />
+                        <button
+                          type="button"
+                          aria-label={`Delete ${task.title}`}
+                          onClick={() => deleteTask(task)}
+                          className="rounded-md p-1.5 text-[var(--ink-soft)] opacity-0 hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100 focus:opacity-100"
+                        >
+                          <Trash size={15} />
+                        </button>
+                      </span>
+                    </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="px-5 py-4 text-sm text-[var(--ink-soft)]">No tasks in this phase.</p>
+              ))}
+            </section>
+            );
+          })}
         </div>
       </section>
       <section className="mt-10 grid gap-4 lg:grid-cols-2">
-        <div className="surface rounded-2xl p-6 lg:col-span-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Client briefs</h2><form className="flex min-w-[280px] gap-2" onSubmit={async e=>{e.preventDefault();const templateId=String(new FormData(e.currentTarget).get('templateId'));await mutate(`/admin/projects/${id}/brief`,{templateId})}}><select className="field" name="templateId" required><option value="">Assign another brief</option>{briefTemplates.filter(template=>!briefs.some(brief=>brief.title===template.name)).map(template=><option value={template.id}>{template.name}</option>)}</select><button className="btn-secondary">Assign</button></form></div><div className="mt-6 grid gap-6">{briefs.map(brief=><section className="rounded-xl border border-white/10 p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="text-lg font-semibold">{brief.title}</h3><p className="mt-1 text-sm capitalize text-[#777]">{brief.status==='submitted'?'Finalized':brief.status.replaceAll('_',' ')}</p>{brief.submittedAt&&<p className="text-xs text-[#777]">Finalized {new Date(brief.submittedAt).toLocaleDateString()}</p>}</div><div className="flex gap-2">{brief.status==='submitted'&&<><button className="btn-secondary" onClick={()=>reopenBrief(brief)}>Reopen brief</button><a className="btn-primary" href={`/api/admin/briefs/${brief.id}/pdf`}>Download PDF</a></>}<button type="button" className="rounded-[8px] border border-red-500/40 px-3 py-2 text-sm font-semibold text-red-400" onClick={()=>setDeleteBriefTarget(brief)}>Delete</button></div></div>{brief.status==='submitted'?<div className="mt-7 grid gap-6">{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <div><p className="label">{field.label}</p>{field.type==='url'&&value?<a className="mt-2 block break-all text-[#4ADE80] underline" href={String(value)} target="_blank" rel="noreferrer">{String(value)}</a>:<p className="mt-2 whitespace-pre-wrap leading-7">{value===true?'Yes':value===false?'No':String(value||'Not provided')}</p>}</div>})}</div>:<form className="mt-7 grid gap-5" onSubmit={e=>{e.preventDefault();void saveBrief(brief,e.currentTarget)}}>{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <label className="label">{field.label}{field.required?' *':''}{field.type==='long_text'?<textarea className="field min-h-28" name={field.id} defaultValue={String(value||'')}/>:field.type==='select'?<select className="field" name={field.id} defaultValue={String(value||'')}><option value="">Choose…</option>{field.options?.map(option=><option value={option}>{option}</option>)}</select>:field.type==='checkbox'?<span className="flex items-center gap-2 text-sm normal-case tracking-normal text-[var(--ink)]"><input type="checkbox" name={field.id} defaultChecked={value===true}/> Yes</span>:field.type==='file'?<p className="text-sm normal-case tracking-normal text-[#777]">Upload this file in the project Files section and record any related notes here.</p>:<input className="field" name={field.id} type={field.type==='email'?'email':field.type==='url'?'url':'text'} defaultValue={String(value||'')}/>}</label>})}<div className="flex flex-wrap justify-end gap-3"><button className="btn-secondary">Save draft</button><button className="btn-primary" type="button" onClick={event=>{const form=event.currentTarget.form;if(form)void saveBrief(brief,form,true)}}>Finalize brief</button></div></form>}</section>)}{!briefs.length&&<p className="text-sm text-[#777]">No brief is assigned to this project yet.</p>}</div></div>
-        <div className="surface rounded-2xl p-6"><h2 className="text-xl font-semibold">Private project files</h2><form onSubmit={upload} className="mt-4 grid gap-3"><input className="field" type="file" name="file" required/><input className="field" name="category" placeholder="Category" defaultValue="General"/><label className="flex gap-2 text-sm"><input type="checkbox" name="clientVisible" value="true"/>Share with client</label><button className="btn-secondary">Upload file</button></form><div className="mt-5 divide-y divide-white/10">{data.files.map(f=><div className="flex items-center gap-3 py-3 text-sm"><a className="min-w-0 flex-1 truncate font-semibold" href={`/api/admin/files/${f.id}/download`}>{f.filename}</a><label className="flex items-center gap-2"><input type="checkbox" checked={f.clientVisible} onChange={e=>filePatch(f.id,{clientVisible:e.target.checked})}/>Shared</label><button className="text-red-400" onClick={async()=>{if(confirm('Delete this file?')){await api(`/admin/files/${f.id}`,{method:'DELETE'});load()}}}>Delete</button></div>)}</div></div>
-        <div className="surface rounded-2xl p-6">
+        <div className="dash-panel p-5 lg:col-span-2"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold tracking-[-.03em]">Client briefs</h2><form className="flex min-w-[280px] gap-2" onSubmit={async e=>{e.preventDefault();const templateId=String(new FormData(e.currentTarget).get('templateId'));await mutate(`/admin/projects/${id}/brief`,{templateId})}}><select className="field" name="templateId" required><option value="">Assign another brief</option>{briefTemplates.filter(template=>!briefs.some(brief=>brief.title===template.name)).map(template=><option value={template.id}>{template.name}</option>)}</select><button className="tool-btn">Assign</button></form></div><div className="mt-6 grid gap-6">{briefs.map(brief=><section className="rounded-xl border border-white/10 p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="text-lg font-semibold">{brief.title}</h3><p className="mt-1 text-sm capitalize text-[var(--ink-soft)]">{brief.status==='submitted'?'Finalized':brief.status.replaceAll('_',' ')}</p>{brief.submittedAt&&<p className="text-xs text-[var(--ink-soft)]">Finalized {new Date(brief.submittedAt).toLocaleDateString()}</p>}</div><div className="flex gap-2">{brief.status==='submitted'&&<><button className="btn-secondary" onClick={()=>reopenBrief(brief)}>Reopen brief</button><a className="btn-primary" href={`/api/admin/briefs/${brief.id}/pdf`}>Download PDF</a></>}<button type="button" className="rounded-[8px] border border-red-500/40 px-3 py-2 text-sm font-semibold text-red-400" onClick={()=>setDeleteBriefTarget(brief)}>Delete</button></div></div>{brief.status==='submitted'?<div className="mt-7 grid gap-6">{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <div><p className="label">{field.label}</p>{field.type==='url'&&value?<a className="mt-2 block break-all text-[#4ADE80] underline" href={String(value)} target="_blank" rel="noreferrer">{String(value)}</a>:<p className="mt-2 whitespace-pre-wrap leading-7">{value===true?'Yes':value===false?'No':String(value||'Not provided')}</p>}</div>})}</div>:<form className="mt-7 grid gap-5" onSubmit={e=>{e.preventDefault();void saveBrief(brief,e.currentTarget)}}>{brief.fieldsSnapshot.map(field=>{const value=brief.responses.find(response=>response.fieldId===field.id)?.value;return <label className="label">{field.label}{field.required?' *':''}{field.type==='long_text'?<textarea className="field min-h-28" name={field.id} defaultValue={String(value||'')}/>:field.type==='select'?<select className="field" name={field.id} defaultValue={String(value||'')}><option value="">Choose…</option>{field.options?.map(option=><option value={option}>{option}</option>)}</select>:field.type==='checkbox'?<span className="flex items-center gap-2 text-sm normal-case tracking-normal text-[var(--ink)]"><input type="checkbox" name={field.id} defaultChecked={value===true}/> Yes</span>:field.type==='file'?<p className="text-sm normal-case tracking-normal text-[var(--ink-soft)]">Upload this file in the project Files section and record any related notes here.</p>:<input className="field" name={field.id} type={field.type==='email'?'email':field.type==='url'?'url':'text'} defaultValue={String(value||'')}/>}</label>})}<div className="flex flex-wrap justify-end gap-3"><button className="btn-secondary">Save draft</button><button className="btn-primary" type="button" onClick={event=>{const form=event.currentTarget.form;if(form)void saveBrief(brief,form,true)}}>Finalize brief</button></div></form>}</section>)}{!briefs.length&&<p className="text-sm text-[var(--ink-soft)]">No brief is assigned to this project yet.</p>}</div></div>
+        <div className="dash-panel p-5"><h2 className="text-xl font-semibold tracking-[-.03em]">Private project files</h2><form onSubmit={upload} className="mt-4 grid gap-3"><input className="field" type="file" name="file" required/><input className="field" name="category" placeholder="Category" defaultValue="General"/><label className="flex gap-2 text-sm"><input type="checkbox" name="clientVisible" value="true"/>Share with client</label><button className="tool-btn justify-center">Upload file</button></form><div className="mt-5 divide-y divide-white/10">{data.files.map(f=><div className="flex items-center gap-3 py-3 text-sm"><a className="min-w-0 flex-1 truncate font-semibold" href={`/api/admin/files/${f.id}/download`}>{f.filename}</a><label className="flex items-center gap-2"><input type="checkbox" checked={f.clientVisible} onChange={e=>filePatch(f.id,{clientVisible:e.target.checked})}/>Shared</label><button className="text-red-400" onClick={async()=>{if(confirm('Delete this file?')){await api(`/admin/files/${f.id}`,{method:'DELETE'});load()}}}>Delete</button></div>)}</div></div>
+        <div className="dash-panel p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Invoices</h2>
+            <h2 className="text-xl font-semibold tracking-[-.03em]">Invoices</h2>
             <button
               onClick={() => setModal("invoice")}
-              className="btn-secondary"
+              className="tool-btn"
             >
-              <Plus />
+              <Plus size={15} aria-hidden="true" />
               Add
             </button>
           </div>
@@ -474,7 +501,7 @@ export function ProjectDetail({ id }: { id: string }) {
               <div className="flex justify-between py-4">
                 <div>
                   <strong>{i.invoiceNumber}</strong>
-                  <p className="text-sm text-[#777]">{i.description}</p>
+                  <p className="text-sm text-[var(--ink-soft)]">{i.description}</p>
                 </div>
                 <div className="text-right">
                   <strong>
@@ -501,17 +528,17 @@ export function ProjectDetail({ id }: { id: string }) {
               </div>
             ))}
             {!data.invoices.length && (
-              <p className="py-8 text-sm text-[#777]">No invoices yet.</p>
+              <p className="py-8 text-sm text-[var(--ink-soft)]">No invoices yet.</p>
             )}
           </div>
         </div>
-        <div className="surface rounded-2xl p-6">
-          <h2 className="text-xl font-semibold">Recent activity</h2>
+        <div className="dash-panel p-5">
+          <h2 className="text-xl font-semibold tracking-[-.03em]">Recent activity</h2>
           <div className="mt-5 divide-y divide-[#ddd]">
             {data.activity.slice(0, 6).map((a) => (
               <div className="py-3">
                 <p className="text-sm">{a.summary}</p>
-                <time className="text-xs text-[#777]">
+                <time className="text-xs text-[var(--ink-soft)]">
                   {new Date(a.createdAt).toLocaleString()}
                 </time>
               </div>
@@ -587,6 +614,10 @@ export function ProjectDetail({ id }: { id: string }) {
                   <option value="admin">Admin</option>
                   <option value="client">Client</option>
                 </select>
+              </label>
+              <label className="label">
+                Assignee name
+                <input name="assigneeName" maxLength={120} className="field" placeholder="e.g. Joss Segura" />
               </label>
               <label className="label">
                 Due date

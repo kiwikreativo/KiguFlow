@@ -27,3 +27,4 @@ export const BUNDLE_SERVICES: Record<(typeof SERVICE_BUNDLES)[number], readonly 
 };
 
 export const SERVICE_OR_BUNDLE = [...SERVICE_PACKAGES, ...SERVICE_BUNDLES] as const;
+export const PROBLEM_REPORTS_PHASE = 'Problem reports';

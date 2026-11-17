@@ -54,6 +54,16 @@ describe('admin workflow validation', () => {
     expect(portalHandler).not.toContain('projectPhases.description');
   });
 
+  it('files problem reports under the internal phase and resolves them with the task', () => {
+    const source = readFileSync(fileURLToPath(new URL('./app.ts', import.meta.url)), 'utf8');
+    const reportHandler = source.slice(source.indexOf("app.post('/portal/:token/problem-reports'"));
+    expect(reportHandler).toMatch(/eq\(projectPhases\.name, PROBLEM_REPORTS_PHASE\)[\s\S]*db\.insert\(tasks\)\.values\(\{ id: taskId, projectId: access\.projectId, phaseId,/);
+    const portalHandler = source.slice(source.indexOf("app.get('/portal/:token'"), source.indexOf("app.post('/portal/:token/tasks"));
+    expect(portalHandler).toContain('ne(projectPhases.name, PROBLEM_REPORTS_PHASE)');
+    const taskPatch = source.slice(source.indexOf("app.patch('/admin/tasks/:id'"), source.indexOf("app.patch('/admin/tasks/:id'") + 3000);
+    expect(taskPatch).toContain("db.update(problemReports).set({ status: values.status === 'completed' ? 'resolved' : 'open'");
+  });
+
   it('requires an approved Origin for every mutation', () => {
     const source = readFileSync(fileURLToPath(new URL('./middleware.ts', import.meta.url)), 'utf8');
     expect(source).toContain('if (!origin || !allowed.includes(origin))');

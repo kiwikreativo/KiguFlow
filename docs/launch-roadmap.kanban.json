@@ -1,0 +1,544 @@
+{
+  "version": 1,
+  "title": "Workspace roadmap",
+  "columns": [
+    {
+      "id": "column-mw7q9zg1-5vqtft",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "card-mw7q9zg1-x1scs4",
+          "title": "Welcome to your board",
+          "description": "Edit this card, add project details, or drag it into another column.",
+          "priority": "medium",
+          "assignee": "",
+          "dueDate": "",
+          "tags": [
+            "getting-started"
+          ],
+          "createdAt": "2026-11-08T11:07:23.953Z"
+        },
+        {
+          "id": "card-mw7r9xaw-o8jq7f",
+          "title": "[Security]: Validate any leaks of API keys",
+          "description": "",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "2026-11-11",
+          "tags": [],
+          "createdAt": "2026-11-08T11:35:20.792Z"
+        },
+        {
+          "id": "card-mw7rcbhe-835p0e",
+          "title": "[usability]: task description",
+          "description": "The task description should to watch and edit if needed",
+          "priority": "low",
+          "assignee": "kiwikreativo",
+          "dueDate": "2026-11-20",
+          "tags": [
+            "Usability"
+          ],
+          "createdAt": "2026-11-08T11:37:12.482Z"
+        },
+        {
+          "id": "card-baf71cd4-s38n1b",
+          "title": "[Security]: Validate client and project information vulnerabilities",
+          "description": "Review how client and project data is stored, exposed and accessed to find vulnerabilities.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Validations",
+            "Security"
+          ],
+          "createdAt": "2026-11-08T12:00:00.000Z"
+        },
+        {
+          "id": "card-baf71cd6-kdo1y7",
+          "title": "[Notifications]: Remind clients when an action is due",
+          "description": "Send reminders to clients when the due date of a client action arrives.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Validations",
+            "Notifications"
+          ],
+          "createdAt": "2026-11-08T12:00:00.000Z"
+        },
+        {
+          "id": "card-baf71cd8-3luaxm",
+          "title": "[Bug]: Admin email does not change after updating .env",
+          "description": "Whenever the email is updated in the .env, the app keeps using the old email.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Validations",
+            "Bug"
+          ],
+          "createdAt": "2026-11-08T12:00:00.000Z"
+        },
+        {
+          "id": "card-baf71cdb-7awvw0",
+          "title": "[Email]: Client portal invitation email template",
+          "description": "Draft the email template for inviting the client to the portal.\n\n- [ ] Test send an email to guillermoj.obando@gmail.com",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Implementations",
+            "Email"
+          ],
+          "createdAt": "2026-11-08T12:00:00.000Z"
+        },
+        {
+          "id": "card-baf71cdd-q8vwbw",
+          "title": "[Invoicing]: Invoices based on Hacienda laws",
+          "description": "Invoices must follow Hacienda laws. They should be sent to the client by email, or generated as a PDF the client can download.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Implementations",
+            "Invoicing"
+          ],
+          "createdAt": "2026-11-08T12:00:00.000Z"
+        },
+        {
+          "id": "card-baf71cdf-ce0ql7",
+          "title": "[Payments]: Pay invoices from the client portal",
+          "description": "Integrate a payment method linked to the invoice in the client portal, plus an option to download the document as PDF.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Implementations",
+            "Payments",
+            "Portal"
+          ],
+          "createdAt": "2026-11-08T12:00:00.000Z"
+        },
+        {
+          "id": "card-baf71ce1-pyzksa",
+          "title": "[AI]: Auto-create tasks from PDFs",
+          "description": "Integrate AI to auto-create tasks from a PDF: take the task title from the PDF, create the task, and auto-assign it to the correct phase of changes. (This is to be worked out by itself.)",
+          "priority": "low",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Implementations",
+            "AI"
+          ],
+          "createdAt": "2026-11-08T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-01",
+          "title": "[Tenancy]: Add ownerId to tenant tables + migration 0010",
+          "description": "Tenant = users.id. Add ownerId (uuid, FK users, not null) to clients, templates, services, service_bundles, brief templates and activity.\nMigration drizzle/0010_tenant_owner.sql: add the column as nullable, backfill it with the current admin's id, then set NOT NULL. Change the clients email unique index to (ownerId, lower(trim(email))).\nProjects, tasks, invoices and files inherit the owner through clients -> projects.\n\nDone when:\n- [ ] pnpm db:migrate runs clean on a copy of prod\n- [ ] existing data still loads for the current admin",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-1",
+            "Tenancy"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-02",
+          "title": "[Tenancy]: requireUser middleware with userId in context",
+          "description": "Turn requireAdmin (src/server/middleware.ts) into requireUser and put userId on the Hono context. Keep the 10-minute inactivity rule and trustedOrigin.\n\nDepends on: ownerId migration.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-1",
+            "Tenancy"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-03",
+          "title": "[Tenancy]: Scope every /admin query by owner",
+          "description": "Every /admin/* route in src/server/app.ts must filter by ownerId directly, or by joining through clients.ownerId for projects, tasks, invoices, phases, files, briefs and problem reports.\nThis also covers dashboardData, service-catalog, templates and the R2 key paths.\n\nDone when:\n- [ ] a grep finds no unscoped select, update or delete on tenant tables",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-1",
+            "Tenancy",
+            "Security"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-04",
+          "title": "[Tenancy]: Owner-aware cron jobs and portal",
+          "description": "runFileCleanup, retryProblemReportNotifications and the scheduled task emails must resolve the owner (sender name and business) per project.\nPortal (/portal/:token) emails should use the freelancer's businessName instead of a hard-coded brand.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-1",
+            "Tenancy"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-05",
+          "title": "[Tenancy]: IDOR test suite (user A vs user B)",
+          "description": "Seed two users, then check that user A gets 404 when trying to GET, PATCH or DELETE any of user B's clients, projects, tasks, invoices or files.\nThis is the gate for opening registration.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-1",
+            "Tenancy",
+            "Security"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-06",
+          "title": "[Register]: Extract seed into provisionAccount()",
+          "description": "Move the services, bundles, default templates and brief templates seeding from scripts/seed.ts into src/server/provisionAccount.ts(userId).\nBoth seed.ts and register call it. It must be idempotent.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-2",
+            "Register"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-07",
+          "title": "[Register]: POST /api/auth/register endpoint",
+          "description": "Add registerSchema to src/schemas/api.ts: name, businessName, email, password (min 8), acceptTerms (must be true).\nReuse hashPassword, the session cookie creation and the rate limiter from /auth/login.\nIn one batch: create the user, call provisionAccount, and create a free subscription.\nAnswer duplicate emails the same way as success, without revealing whether the account exists.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-2",
+            "Register"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-08",
+          "title": "[Register]: Register page /register",
+          "description": "Register.tsx, following the Login.tsx pattern, with EN/ES strings in src/i18n.\nAdd links between Login and Register, and point the Landing CTAs to /register.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-2",
+            "Register",
+            "UI"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-09",
+          "title": "[Register]: Email verification",
+          "description": "email_verifications table (userId, tokenHash, expiresAt). Send it through sendEmail (Resend) in EN/ES.\nBlock checkout until the email is verified.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-2",
+            "Register",
+            "Email"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-10",
+          "title": "[Register]: Forgot / reset password flow",
+          "description": "password_resets table holding the token hash, with a 1-hour expiry and single use.\n/forgot and /reset pages. Revoke all of the user's sessions after a reset.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-2",
+            "Register",
+            "Security"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-11",
+          "title": "[Register]: Account settings + delete account",
+          "description": "Change name, businessName and password. Deleting the account cascades the DB rows, deletes the R2 objects under the owner's prefix and cancels the ONVO subscription.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-2",
+            "Register"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-12",
+          "title": "[Plans]: Define plans and limits (src/lib/plans.ts)",
+          "description": "Plans are a constant: free / pro / studio, each with { id, name, priceMinor per currency (CRC, USD), onvoPriceId, limits: { clients, activeProjects, storageMb } }.\nDecide the final prices and limits before coding.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-3",
+            "Plans"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-13",
+          "title": "[Plans]: subscriptions table + getActivePlan()",
+          "description": "Columns: userId (unique), planId, status (trialing|active|past_due|canceled), onvoCustomerId, onvoSubscriptionId, currentPeriodEnd, cancelAtPeriodEnd, timestamps.\ngetActivePlan(userId) falls back to free when the subscription is canceled, expired, or past the grace period. Add a unit test.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-3",
+            "Plans"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-14",
+          "title": "[Plans]: Enforce limits (402 PLAN_LIMIT_REACHED)",
+          "description": "Check limits on POST /admin/clients, POST /admin/projects and file uploads (storage).\nThe UI shows an upgrade prompt linking to /billing. Downgrades never delete data; they only block new creates.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-3",
+            "Plans"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-15",
+          "title": "[Checkout]: Spike ONVO Pay API (test mode)",
+          "description": "Confirm against the ONVO docs: customers, recurring subscriptions or prices, hosted checkout or payment links, webhook event names, the signature header, and CRC/USD support.\nCreate test keys and record the findings in this card.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-4",
+            "Checkout",
+            "Payments"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-16",
+          "title": "[Checkout]: ONVO client src/server/onvo.ts",
+          "description": "A small fetch client with no SDK: createCustomer, createSubscription / createCheckout, cancelSubscription, verifyWebhook.\nSecrets ONVO_SECRET_KEY and ONVO_WEBHOOK_SECRET go in wrangler secrets and src/env.d.ts.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-4",
+            "Checkout",
+            "Payments"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-17",
+          "title": "[Checkout]: POST /api/billing/checkout",
+          "description": "Body { planId, currency }. Reuse the ONVO customer if one exists, otherwise create it, then return the hosted checkout URL.\nBlock the request if the subscription is already active on the same plan, and require a verified email.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-4",
+            "Checkout",
+            "Payments"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-18",
+          "title": "[Checkout]: Billing page /billing",
+          "description": "Shows the current plan, status and renewal date, usage against limits, upgrade/downgrade, cancel at period end, and payment history.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-4",
+            "Checkout",
+            "UI"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-19",
+          "title": "[Checkout]: Pricing section on Landing + /pricing",
+          "description": "Plan cards come from src/lib/plans.ts, with a CRC/USD toggle. The CTA goes to /register?plan=pro, which leads to checkout after verification.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-4",
+            "Checkout",
+            "UI"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-20",
+          "title": "[Billing]: ONVO webhook endpoint (auto-assign plan)",
+          "description": "POST /api/webhooks/onvo, kept outside trustedOrigin and the auth middleware. Verify the signature.\nEvent mapping:\n- payment succeeded / subscription active -> status=active, planId, currentPeriodEnd\n- payment failed -> past_due (grace period N days)\n- canceled -> cancelAtPeriodEnd=true",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-5",
+            "Billing",
+            "Payments"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-21",
+          "title": "[Billing]: Idempotency table billing_events",
+          "description": "Store each ONVO event id with a unique constraint. A replayed event is a no-op that returns 200.\n\nTests:\n- [ ] replaying an event is safe\n- [ ] a bad signature returns 401\n- [ ] each event type changes the plan as expected",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-5",
+            "Billing"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-22",
+          "title": "[Billing]: Daily cron reconcile + downgrade",
+          "description": "Extend the scheduled handler in src/worker.ts (cron 0 18 * * *). Move expired or canceled subscriptions to free when the period ends, and move past_due to free when the grace period ends.\nOptionally re-fetch the status from ONVO in case a webhook was missed.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-5",
+            "Billing"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-23",
+          "title": "[Billing]: Billing emails (activated, failed, downgraded)",
+          "description": "Send through sendEmail (Resend) in EN/ES, following the renderOnboardingEmail pattern.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-5",
+            "Billing",
+            "Email"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-24",
+          "title": "[Launch]: Shared rate limiter (KV / Durable Object)",
+          "description": "The login rate limit is kept in an in-memory Map per isolate. Move it to a shared store, and use it for login, register, forgot password and checkout.",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-6",
+            "Security"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-25",
+          "title": "[Launch]: Terms of Service + Privacy Policy pages",
+          "description": "EN/ES pages, linked in the footer and the register form. Store acceptedTermsAt on the user.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-6",
+            "Legal"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-26",
+          "title": "[Launch]: Production config (domain, Resend DNS, origins)",
+          "description": "Update APP_URL and ALLOWED_ORIGINS in wrangler.toml. Set up SPF/DKIM for the Resend domain.\nSwitch ONVO to live keys and register the webhook URL. Schedule encrypted backups.",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-6",
+            "Ops"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-27",
+          "title": "[Launch]: Security review + E2E smoke test",
+          "description": "Run /security-review across the tenant scoping and the webhook.\nSmoke test on staging:\n- [ ] register\n- [ ] verify email\n- [ ] free plan is assigned\n- [ ] checkout (ONVO test)\n- [ ] webhook upgrades the plan\n- [ ] pro limits apply\n- [ ] cancel -> downgrade at period end",
+          "priority": "high",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-6",
+            "Security"
+          ],
+          "createdAt": "2026-11-17T12:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "column-mw7q9zg1-sgbdoz",
+      "title": "Review",
+      "cards": []
+    },
+    {
+      "id": "column-mw7q9zg1-vs9895",
+      "title": "In progress",
+      "cards": []
+    },
+    {
+      "id": "column-mw7q9zg1-3h70mj",
+      "title": "Done",
+      "cards": []
+    }
+  ],
+  "updatedAt": "2026-11-17T12:00:00.000Z"
+}
