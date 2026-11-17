@@ -57,8 +57,9 @@ select.field {
 }
 .field:focus { border-color: var(--accent-text); outline: 3px solid rgba(74,222,128,.16); }
 .label { display: grid; gap: .4rem; font-size: .72rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
-.btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border: 1px solid #4ade80; border-radius: 8px; background: #4ade80; color: #010a04; padding: .7rem 1rem; font-weight: 650; transition: transform .2s, background .2s; }
-.btn-primary:hover { background: #6ee799; transform: translateY(-2px); }
+.btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border: 1px solid #14532d; border-radius: 8px; background: #14532d; color: #fff; padding: .7rem 1rem; font-weight: 650; transition: transform .2s, background .2s; }
+.btn-primary:hover { background: #166534; border-color: #166534; transform: translateY(-2px); }
+.btn-primary svg { color: #4ade80; }
 .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: .7rem 1rem; font-weight: 650; }
 .badge { display: inline-flex; align-items: center; border: 1px solid rgba(74,222,128,.28); border-radius: 999px; background: rgba(74,222,128,.1); color: var(--accent-text); padding: .25rem .55rem; font-size: .68rem; font-weight: 650; text-transform: capitalize; }
 .project-status { --project-status-color: #4ade80; --project-status-fill: color-mix(in srgb, var(--project-status-color) 12%, var(--surface)); --project-status-border: color-mix(in srgb, var(--project-status-color) 35%, transparent); }
@@ -212,7 +213,6 @@ select.project-status { border-color: var(--project-status-border); background-c
 /* Dashboard */
 .dash-search { display: none; }
 @media (min-width: 640px) { .dash-search { display: inline-flex; } }
-.dash-avatar { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: #14532d; color: #dcfce7; font-size: 12px; font-weight: 700; }
 .create-btn { display: inline-flex; align-items: center; gap: .6rem; border-radius: 999px; background: #14532d; padding: .4rem .45rem .4rem 1rem; color: #fff; font-size: 13px; font-weight: 600; transition: background .15s ease; }
 .create-btn:hover { background: #166534; }
 .create-btn-dot { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #4ade80; color: #052e16; }

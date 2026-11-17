@@ -54,7 +54,7 @@ const statusMeta: Record<string, { label: string; Icon: PhosphorIcon }> = {
   completed: { label: "Completed", Icon: CheckCircle },
 };
 const priorityBars: Record<string, number> = { low: 1, medium: 2, high: 3 };
-const isCritical = (t: ViewTask) => t.priority === "urgent" && t.status !== "completed";
+const isCritical = (t: Pick<ViewTask, "priority" | "status">) => t.priority === "urgent" && t.status !== "completed";
 const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 1000) / 10 : 0);
 
 function StatusPill({ task }: { task: ViewTask }) {
@@ -72,7 +72,7 @@ function StatusPill({ task }: { task: ViewTask }) {
   );
 }
 
-function PriorityDate({ task }: { task: ViewTask }) {
+export function PriorityDate({ task }: { task: Pick<ViewTask, "priority" | "status" | "dueDate"> }) {
   if (isCritical(task))
     return (
       <span className="tdue" data-tone="critical">

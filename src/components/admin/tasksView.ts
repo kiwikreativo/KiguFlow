@@ -15,7 +15,7 @@ export type TaskGroup = { projectId: string; projectName: string; tasks: ViewTas
 
 const priorityRank: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 
-export const assigneeOf = (t: ViewTask) => t.assigneeName?.trim() || (t.assigneeType === "client" ? t.clientName : "KiguDev");
+export const assigneeOf = (t: Pick<ViewTask, "assigneeName" | "assigneeType" | "clientName">) => t.assigneeName?.trim() || (t.assigneeType === "client" ? t.clientName : "KiguDev");
 
 export const initials = (name: string) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
-  Bell,
   CalendarBlank,
   CaretRight,
   ClockCountdown,
@@ -139,13 +138,6 @@ export function Dashboard() {
             <MagnifyingGlass size={15} aria-hidden="true" />
             <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search tasks… (${modKey}K)`} aria-label="Search tasks" />
           </form>
-          <a href={data?.openIssue ? `/projects/${data.openIssue.projectId}` : "/tasks"} className="relative grid h-9 w-9 place-items-center rounded-full text-[var(--ink-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]" aria-label={data?.openIssue ? "Notifications: 1 open client issue" : "Notifications"}>
-            <Bell size={18} />
-            {data?.openIssue && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[var(--danger)]" aria-hidden="true" />}
-          </a>
-          <span className="dash-avatar" title={adminName} aria-label={adminName ? `Signed in as ${adminName}` : undefined}>
-            {adminName ? initials(adminName) : ""}
-          </span>
         </div>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -159,9 +151,6 @@ export function Dashboard() {
           <p className="mt-1 text-sm text-[var(--ink-soft)]">Here is a quick pulse of your clients, deliverables, and team bandwidth today.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" className="tool-btn dash-search" onClick={() => searchRef.current?.focus()}>
-            Search <kbd className="kbd">{modKey}K</kbd>
-          </button>
           <a href="/projects?new=1" className="create-btn">
             Create project
             <span className="create-btn-dot" aria-hidden="true"><Plus size={13} weight="bold" /></span>
