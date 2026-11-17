@@ -85,7 +85,7 @@ export const projectPhases = pgTable('project_phases', {
 export const tasks = pgTable('tasks', {
   id: uuid('id').primaryKey().defaultRandom(), projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   phaseId: uuid('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }), title: text('title').notNull(), description: text('description'),
-  status: taskStatus('status').notNull().default('todo'), priority: taskPriority('priority').notNull().default('medium'), assigneeType: assigneeType('assignee_type').notNull().default('admin'),
+  status: taskStatus('status').notNull().default('todo'), priority: taskPriority('priority').notNull().default('medium'), assigneeType: assigneeType('assignee_type').notNull().default('admin'), assigneeName: text('assignee_name'),
   dueDate: date('due_date'), sortOrder: integer('sort_order').notNull().default(0), clientVisible: boolean('client_visible').notNull().default(false),
   requiresClientAction: boolean('requires_client_action').notNull().default(false), clientAssignedAt: timestamp('client_assigned_at', { withTimezone: true }), completedAt: timestamp('completed_at', { withTimezone: true }), ...timestamps,
 }, (t) => [index('tasks_project_idx').on(t.projectId), index('tasks_phase_idx').on(t.phaseId), index('tasks_status_due_idx').on(t.status, t.dueDate)]);
