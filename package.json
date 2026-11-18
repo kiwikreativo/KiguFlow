@@ -43,6 +43,8 @@
   "devDependencies": {
     "@astrojs/check": "latest",
     "@cloudflare/workers-types": "latest",
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
