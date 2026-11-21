@@ -15,6 +15,8 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import logoLight from "@/assets/logos/kfverde.webp";
+import logoDark from "@/assets/logos/kiguFlowblanco.webp";
 
 type NavLink = readonly [href: string, label: string, Icon: PhosphorIcon];
 type NavItem = { label: string; Icon: PhosphorIcon; href?: string; children?: readonly NavLink[] };
@@ -92,7 +94,8 @@ export function Shell({
     <main className="app-shell min-h-screen bg-[#010A04] text-white md:grid md:grid-cols-[248px_1fr]">
       <aside className="side-bar hidden min-h-screen flex-col md:fixed md:flex md:w-[248px]">
         <a href="/dashboard" className="side-brand">
-          <span className="side-logo" aria-hidden="true">K</span>
+          <img src={logoDark.src} alt="" className="logo-dark h-8 w-8 flex-none" />
+          <img src={logoLight.src} alt="" className="logo-light h-8 w-8 flex-none" />
           <span className="grid leading-tight">
             <strong className="text-[15px] font-semibold tracking-[-.02em]">KiguFlow</strong>
             <span className="text-[11px] text-[var(--ink-soft)]">Workspace</span>

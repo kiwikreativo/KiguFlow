@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { invoiceSchema, invoiceStatusUpdateSchema, taskListQuerySchema } from '../schemas/api';
+import { clientSchema, invoiceSchema, invoiceStatusUpdateSchema, taskListQuerySchema, taskSchema, updateOf } from '../schemas/api';
 import { BUNDLE_SERVICES, SERVICE_BUNDLES, SERVICE_PACKAGES } from '../lib/project-options';
 
 describe('admin workflow validation', () => {
@@ -23,6 +23,14 @@ describe('admin workflow validation', () => {
     const start = source.indexOf("app.delete('/admin/projects/:id'");
     const handler = source.slice(start, source.indexOf("app.", start + 4));
     expect(handler).toContain('if (projectFiles.length) await runFileCleanup');
+  });
+
+  it('does not fill defaults into PATCH bodies', () => {
+    expect(updateOf(taskSchema).parse({ status: 'completed' })).toEqual({ status: 'completed' });
+    expect(updateOf(clientSchema).parse({ name: 'Ana Mora' })).toEqual({ name: 'Ana Mora' });
+    expect(updateOf(taskSchema).safeParse({ title: '' }).success).toBe(false);
+    const source = readFileSync(fileURLToPath(new URL('./app.ts', import.meta.url)), 'utf8');
+    expect(source).not.toContain('.partial()');
   });
 
   it('accepts combined task status and project filters', () => {

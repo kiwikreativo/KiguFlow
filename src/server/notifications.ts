@@ -64,18 +64,19 @@ export async function queueScheduledNotifications(db: Database, now = new Date()
   return deliveries.length;
 }
 
-function reasonFor(kind: DeliveryKind) {
-  if (kind === 'task_assigned') return 'New task assigned';
-  if (kind === 'task_due_soon') return 'Due within three days';
-  if (kind === 'task_weekly_reminder') return 'Weekly reminder';
-  return 'Completed by client';
+function reasonFor(kind: DeliveryKind, language: 'en' | 'es') {
+  const es = language === 'es';
+  if (kind === 'task_assigned') return es ? 'Nueva tarea asignada' : 'New task assigned';
+  if (kind === 'task_due_soon') return es ? 'Vence en tres días' : 'Due within three days';
+  if (kind === 'task_weekly_reminder') return es ? 'Recordatorio semanal' : 'Weekly reminder';
+  return es ? 'Completada por el cliente' : 'Completed by client';
 }
 
 export async function deliverNotifications(env: RuntimeEnv, db: Database, eventKeys?: string[], publicOrigin = env.APP_URL) {
   const appUrl = publicOrigin.replace(/\/$/, '');
   const filters = [or(eq(notificationDeliveries.status, 'pending'), eq(notificationDeliveries.status, 'failed'))!, lt(notificationDeliveries.attemptCount, MAX_ATTEMPTS)];
   if (eventKeys?.length) filters.push(inArray(notificationDeliveries.eventKey, eventKeys));
-  const rows = await db.select({ id: notificationDeliveries.id, kind: notificationDeliveries.kind, recipient: notificationDeliveries.recipient, projectId: notificationDeliveries.projectId, taskId: notificationDeliveries.taskId, taskTitle: tasks.title, dueDate: tasks.dueDate, projectName: projects.name, clientName: clients.name }).from(notificationDeliveries).innerJoin(tasks, eq(notificationDeliveries.taskId, tasks.id)).innerJoin(projects, eq(notificationDeliveries.projectId, projects.id)).innerJoin(clients, eq(projects.clientId, clients.id)).where(and(...filters)).limit(100);
+  const rows = await db.select({ id: notificationDeliveries.id, kind: notificationDeliveries.kind, recipient: notificationDeliveries.recipient, projectId: notificationDeliveries.projectId, taskId: notificationDeliveries.taskId, taskTitle: tasks.title, dueDate: tasks.dueDate, projectName: projects.name, clientName: clients.name, language: clients.preferredLanguage }).from(notificationDeliveries).innerJoin(tasks, eq(notificationDeliveries.taskId, tasks.id)).innerJoin(projects, eq(notificationDeliveries.projectId, projects.id)).innerJoin(clients, eq(projects.clientId, clients.id)).where(and(...filters)).limit(100);
   const groups = new Map<string, typeof rows>();
   for (const row of rows) {
     const audience = row.kind === 'client_task_completed' ? 'admin' : 'client';
@@ -94,13 +95,14 @@ export async function deliverNotifications(env: RuntimeEnv, db: Database, eventK
         const raw = randomToken();
         const [token] = await db.insert(portalTokens).values({ projectId: group[0].projectId, tokenHash: await sha256(raw), expiresAt: new Date(Date.now() + 30 * DAY_MS) }).returning({ id: portalTokens.id });
         createdTokenId = token.id;
+        const language = group[0].language === 'es' ? 'es' : 'en';
         const taskMap = new Map<string, { title: string; dueDate: string | null; reasons: string[] }>();
         for (const item of group) {
           const task = taskMap.get(item.taskId) || { title: item.taskTitle, dueDate: item.dueDate, reasons: [] };
-          task.reasons.push(reasonFor(item.kind));
+          task.reasons.push(reasonFor(item.kind, language));
           taskMap.set(item.taskId, task);
         }
-        await sendClientTaskNotification(env, { to: group[0].recipient, clientName: group[0].clientName, projectName: group[0].projectName, tasks: [...taskMap.values()], url: `${appUrl}/portal/${raw}` });
+        await sendClientTaskNotification(env, { to: group[0].recipient, clientName: group[0].clientName, projectName: group[0].projectName, language, tasks: [...taskMap.values()], url: `${appUrl}/portal/${raw}` });
       }
       await db.update(notificationDeliveries).set({ status: 'sent', sentAt: new Date(), lastAttemptAt: new Date(), lastError: null, attemptCount: sql`${notificationDeliveries.attemptCount} + 1`, updatedAt: new Date() }).where(inArray(notificationDeliveries.id, ids));
       sent += ids.length;

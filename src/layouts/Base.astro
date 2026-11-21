@@ -1,5 +1,7 @@
 ---
 import '@/styles/global.css';
+import logoLight from '@/assets/logos/kfverde.webp';
+import logoDark from '@/assets/logos/kiguFlowblanco.webp';
 interface Props { title: string; description?: string; }
 const { title, description = 'Freelance client work, clearly organized.' } = Astro.props;
 ---
@@ -10,6 +12,8 @@ const { title, description = 'Freelance client work, clearly organized.' } = Ast
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#010a04" />
+    <link rel="icon" type="image/webp" href={logoLight.src} media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/webp" href={logoDark.src} media="(prefers-color-scheme: dark)" />
     <script is:inline>
       (() => {
         const key = "kiguflow-theme";

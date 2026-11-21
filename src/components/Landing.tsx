@@ -3,7 +3,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   ArrowRight,
-  CirclesFour,
   Lightning,
   LockKey,
   Stack,
@@ -11,6 +10,8 @@ import {
 } from "@phosphor-icons/react";
 import { useRef } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import logoLight from "@/assets/logos/kfverde.webp";
+import logoDark from "@/assets/logos/kiguFlowblanco.webp";
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const systems = [
@@ -76,19 +77,6 @@ export function Landing() {
             },
           ),
         );
-      gsap.utils
-        .toArray<HTMLElement>("[data-stack]")
-        .forEach((card, index) =>
-          gsap.to(card, {
-            y: index * -18,
-            scrollTrigger: {
-              trigger: card,
-              start: "top 78%",
-              end: "top 20%",
-              scrub: true,
-            },
-          }),
-        );
     },
     { scope: root },
   );
@@ -103,9 +91,8 @@ export function Landing() {
             href="/"
             className="flex items-center gap-3 font-semibold tracking-[-.03em]"
           >
-            <span className="grid h-8 w-8 place-items-center rounded-[8px] border border-[#4ADE80]/45 bg-[#4ADE80]/10">
-              <CirclesFour className="text-[#4ADE80]" size={18} />
-            </span>
+            <img src={logoDark.src} alt="" className="logo-dark h-8 w-8" />
+            <img src={logoLight.src} alt="" className="logo-light h-8 w-8" />
             KiguFlow
           </a>
           <div className="hidden items-center gap-8 text-sm text-white/55 md:flex">
@@ -301,9 +288,9 @@ export function Landing() {
               ],
             ].map(([title, copy], index) => (
               <article
-                data-stack
                 key={title}
-                className="group sticky top-28 overflow-hidden rounded-[8px] border border-white/10 bg-[#191C21] p-7 shadow-[0_30px_80px_rgba(0,0,0,.45)] lg:p-9"
+                style={{ top: 112 + index * 18 }}
+                className="group sticky overflow-hidden rounded-[8px] border border-white/10 bg-[#191C21] p-7 shadow-[0_30px_80px_rgba(0,0,0,.45)] lg:p-9"
               >
                 <div className="flex gap-6">
                   <span className="vertex-mono mt-1 text-xs text-[#4ADE80]">

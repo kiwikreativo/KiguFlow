@@ -1,31 +1,18 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowsInLineVertical, ArrowsOutLineVertical, CalendarBlank, CaretDown, CheckCircle, Copy, Plus, Trash } from "@phosphor-icons/react";
+import { ArrowsInLineVertical, ArrowsOutLineVertical, CalendarBlank, CaretDown, CheckCircle, Copy, Envelope, Plus, Trash } from "@phosphor-icons/react";
 import { toast, Toaster } from "sonner";
 import { api, ApiRequestError, isAbortError, isAuthenticationError } from "@/lib/api";
 import { projectStatusLabel } from "@/lib/project-status";
 import { Shell } from "./Shell";
 import { Modal } from "./Modal";
 import { PriorityDate } from "./Tasks";
-import { assigneeOf, initials } from "./tasksView";
+import { assigneeOf, initials, type Task } from "./tasksView";
+import { TaskModal } from "./TaskModal";
 type Phase = {
   id: string;
   name: string;
   description: string | null;
   status: string;
-  sortOrder: number;
-};
-type Task = {
-  id: string;
-  phaseId: string | null;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  assigneeType: string;
-  assigneeName: string | null;
-  dueDate: string | null;
-  clientVisible: boolean;
-  requiresClientAction: boolean;
   sortOrder: number;
 };
 type Invoice = {
@@ -73,6 +60,7 @@ export function ProjectDetail({ id }: { id: string }) {
     [deleteBriefTarget, setDeleteBriefTarget] = useState<Brief | null>(null),
     [deleteConfirmation, setDeleteConfirmation] = useState(""),
     [deleting, setDeleting] = useState(false),
+    [editingTask, setEditingTask] = useState<Task | null>(null),
     // Manual open/closed overrides; without one, completed phases start closed.
     [phaseOpen, setPhaseOpen] = useState<Record<string, boolean>>({});
   const isPhaseOpen = (p: Phase) => phaseOpen[p.id] ?? p.status !== "completed";
@@ -173,6 +161,7 @@ export function ProjectDetail({ id }: { id: string }) {
     if (confirm(`Delete “${task.title}”? This cannot be undone.`)) {
       await api(`/admin/tasks/${task.id}`, { method: "DELETE" });
       toast.success("Task deleted");
+      setEditingTask(null);
       load();
     }
   }
@@ -235,7 +224,7 @@ export function ProjectDetail({ id }: { id: string }) {
         <div className="flex flex-wrap items-center gap-2"><button className="btn-secondary" onClick={portal}>
           <Copy size={15} aria-hidden="true" />
           Copy portal link
-        </button><button className="btn-primary" onClick={openInvitation}>Email invitation</button><button className="btn-secondary !border-red-500/40 text-red-500" onClick={()=>{setDeleteConfirmation('');setModal('delete-project')}}>Delete project</button></div>
+        </button><button className="btn-primary" onClick={openInvitation}><Envelope />Email invitation</button><button className="btn-secondary !border-red-500/40 text-red-500" onClick={()=>{setDeleteConfirmation('');setModal('delete-project')}}>Delete project</button></div>
       }
     >
       <Toaster richColors />
@@ -439,7 +428,7 @@ export function ProjectDetail({ id }: { id: string }) {
                         aria-label={`Mark "${task.title}" as ${completed ? "to do" : "completed"}`}
                       />
                       <span className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className={`task-title${completed ? " is-done" : ""}`}>{task.title}</span>
+                        <button type="button" className={`task-title${completed ? " is-done" : ""}`} onClick={() => setEditingTask(task)}>{task.title}</button>
                         {task.requiresClientAction && <span className="count-pill">Action required</span>}
                       </span>
                       <span className="flex min-w-0 items-center gap-2 text-[13px] text-[var(--ink-soft)]">
@@ -546,8 +535,8 @@ export function ProjectDetail({ id }: { id: string }) {
           </div>
         </div>
       </section>
-      {deleteBriefTarget && <Modal title="Delete brief?" onClose={()=>!deleting&&setDeleteBriefTarget(null)}><p className="leading-7 text-[var(--ink-soft)]">This brief will be removed from the assigned project. This action cannot be undone.</p><p className="mt-4 font-semibold">{deleteBriefTarget.title}</p><div className="mt-7 flex justify-end gap-3"><button className="btn-secondary" type="button" onClick={()=>setDeleteBriefTarget(null)} disabled={deleting}>Cancel</button><button className="rounded-[8px] bg-red-600 px-4 py-3 font-semibold text-white disabled:opacity-50" type="button" onClick={deleteBrief} disabled={deleting}>{deleting?'Deleting…':'Delete brief'}</button></div></Modal>}
-      {modal === "delete-project" && <Modal title="Delete project permanently?" onClose={()=>!deleting&&setModal(null)}><p className="leading-7 text-[var(--ink-soft)]">This will permanently delete the project and its exclusively related data, including tasks, briefs, and project-specific documents. Financial records will be retained.</p><p className="mt-5 font-semibold">Type <span className="text-[var(--ink)]">{data.name}</span> to confirm.</p><label className="label mt-4">Project name<input className="field" value={deleteConfirmation} onChange={event=>setDeleteConfirmation(event.target.value)} autoComplete="off" /></label><div className="mt-7 flex justify-end gap-3"><button className="btn-secondary" type="button" onClick={()=>setModal(null)} disabled={deleting}>Cancel</button><button className="rounded-[8px] bg-red-600 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" type="button" onClick={deleteProject} disabled={deleteConfirmation!==data.name||deleting}>{deleting?'Deleting…':'Delete permanently'}</button></div></Modal>}
+      {deleteBriefTarget && <Modal title="Delete brief?" onClose={()=>!deleting&&setDeleteBriefTarget(null)}><p className="leading-7 text-[var(--ink-soft)]">This brief will be removed from the assigned project. This action cannot be undone.</p><p className="mt-4 font-semibold">{deleteBriefTarget.title}</p><div className="mt-7 flex justify-end gap-3"><button className="btn-secondary" type="button" onClick={()=>setDeleteBriefTarget(null)} disabled={deleting}>Cancel</button><button className="rounded-full bg-red-600 px-4 py-3 font-semibold text-white disabled:opacity-50" type="button" onClick={deleteBrief} disabled={deleting}>{deleting?'Deleting…':'Delete brief'}</button></div></Modal>}
+      {modal === "delete-project" && <Modal title="Delete project permanently?" onClose={()=>!deleting&&setModal(null)}><p className="leading-7 text-[var(--ink-soft)]">This will permanently delete the project and its exclusively related data, including tasks, briefs, and project-specific documents. Financial records will be retained.</p><p className="mt-5 font-semibold">Type <span className="text-[var(--ink)]">{data.name}</span> to confirm.</p><label className="label mt-4">Project name<input className="field" value={deleteConfirmation} onChange={event=>setDeleteConfirmation(event.target.value)} autoComplete="off" /></label><div className="mt-7 flex justify-end gap-3"><button className="btn-secondary" type="button" onClick={()=>setModal(null)} disabled={deleting}>Cancel</button><button className="rounded-full bg-red-600 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" type="button" onClick={deleteProject} disabled={deleteConfirmation!==data.name||deleting}>{deleting?'Deleting…':'Delete permanently'}</button></div></Modal>}
       {modal === "project" && (
         <Modal title="Edit project" onClose={() => setModal(null)}>
           <form onSubmit={updateProject} className="grid gap-4">
@@ -566,6 +555,19 @@ export function ProjectDetail({ id }: { id: string }) {
             <button className="btn-primary">Save project</button>
           </form>
         </Modal>
+      )}
+      {editingTask && (
+        <TaskModal
+          task={editingTask}
+          phases={data.phases}
+          onClose={() => setEditingTask(null)}
+          onSaved={() => {
+            setEditingTask(null);
+            toast.success("Changes saved");
+            load();
+          }}
+          onDelete={deleteTask}
+        />
       )}
       {modal === "task" && (
         <Modal title="Add a project task" onClose={() => setModal(null)}>

@@ -95,40 +95,43 @@
         {
           "id": "card-baf71cdd-q8vwbw",
           "title": "[Invoicing]: Invoices based on Hacienda laws",
-          "description": "Invoices must follow Hacienda laws. They should be sent to the client by email, or generated as a PDF the client can download.",
+          "description": "Invoices must follow Hacienda laws. They should be sent to the client by email, or generated as a PDF the client can download.\nPlan: Pro. It's a legal must-have for Costa Rican freelancers, so Pro must include it.",
           "priority": "high",
           "assignee": "kiwikreativo",
           "dueDate": "",
           "tags": [
             "Implementations",
-            "Invoicing"
+            "Invoicing",
+            "Pro"
           ],
           "createdAt": "2026-11-08T12:00:00.000Z"
         },
         {
           "id": "card-baf71cdf-ce0ql7",
           "title": "[Payments]: Pay invoices from the client portal",
-          "description": "Integrate a payment method linked to the invoice in the client portal, plus an option to download the document as PDF.",
+          "description": "Integrate a payment method linked to the invoice in the client portal, plus an option to download the document as PDF.\nPlan: Max (candidate to move to Pro if Pro sells slowly). Pass ONVO fees through; don't absorb them.",
           "priority": "high",
           "assignee": "kiwikreativo",
           "dueDate": "",
           "tags": [
             "Implementations",
             "Payments",
-            "Portal"
+            "Portal",
+            "Max"
           ],
           "createdAt": "2026-11-08T12:00:00.000Z"
         },
         {
           "id": "card-baf71ce1-pyzksa",
           "title": "[AI]: Auto-create tasks from PDFs",
-          "description": "Integrate AI to auto-create tasks from a PDF: take the task title from the PDF, create the task, and auto-assign it to the correct phase of changes. (This is to be worked out by itself.)",
+          "description": "Integrate AI to auto-create tasks from a PDF: take the task title from the PDF, create the task, and auto-assign it to the correct phase of changes. (This is to be worked out by itself.)\nPlan: Max, metered (include N PDF imports per month).",
           "priority": "low",
           "assignee": "kiwikreativo",
           "dueDate": "",
           "tags": [
             "Implementations",
-            "AI"
+            "AI",
+            "Max"
           ],
           "createdAt": "2026-11-08T12:00:00.000Z"
         },
@@ -294,14 +297,15 @@
         {
           "id": "card-launch-12",
           "title": "[Plans]: Define plans and limits (src/lib/plans.ts)",
-          "description": "Plans are a constant: free / pro / studio, each with { id, name, priceMinor per currency (CRC, USD), onvoPriceId, limits: { clients, activeProjects, storageMb } }.\nDecide the final prices and limits before coding.",
+          "description": "Plans are a constant: pro / max (open source = self-hosted, no plan), each with { id, name, priceMinor per currency (CRC, USD), onvoPriceId, limits: { clients, activeProjects, storageMb }, features }.\nPrices (see docs/pricing-tiers.md): Pro $30/mo or $300/yr; Max $100/mo or $1,000/yr. Max is the anchor: Pro is the plan we want most people on.\nLimits: Pro ~15 active clients, 5 GB storage; Max unlimited clients, 50 GB.\nFeatures: Pro = templates, service catalog, briefs, documents, invoices, Hacienda e-invoicing, emails, problem reports, reminders. Max = Pro + portal payments (ONVO), AI task import (metered), white-label/custom domain, team members, priority support.",
           "priority": "high",
           "assignee": "kiwikreativo",
           "dueDate": "",
           "tags": [
             "Launch",
             "phase-3",
-            "Plans"
+            "Plans",
+            "Pricing"
           ],
           "createdAt": "2026-11-17T12:00:00.000Z"
         },
@@ -322,7 +326,7 @@
         {
           "id": "card-launch-14",
           "title": "[Plans]: Enforce limits (402 PLAN_LIMIT_REACHED)",
-          "description": "Check limits on POST /admin/clients, POST /admin/projects and file uploads (storage).\nThe UI shows an upgrade prompt linking to /billing. Downgrades never delete data; they only block new creates.",
+          "description": "Check limits on POST /admin/clients, POST /admin/projects and file uploads (storage).\nThe UI shows an upgrade prompt linking to /billing. Downgrades never delete data; they only block new creates.\nAlso gate features by plan (e.g. requirePlan('max') for portal payments, AI import, white-label) with the same 402 + upgrade prompt.",
           "priority": "high",
           "assignee": "kiwikreativo",
           "dueDate": "",
@@ -396,7 +400,7 @@
         {
           "id": "card-launch-19",
           "title": "[Checkout]: Pricing section on Landing + /pricing",
-          "description": "Plan cards come from src/lib/plans.ts, with a CRC/USD toggle. The CTA goes to /register?plan=pro, which leads to checkout after verification.",
+          "description": "Plan cards come from src/lib/plans.ts, with a CRC/USD toggle. The CTA goes to /register?plan=pro, which leads to checkout after verification.\nAnchor layout: three cards, Free (self-host) | Pro | Max. Pro sits in the middle, highlighted, with a \"Most popular\" badge and the main CTA. Show annual as \"$25/mo billed yearly\". Max lists agency features so it looks like a real plan.",
           "priority": "medium",
           "assignee": "kiwikreativo",
           "dueDate": "",
@@ -521,6 +525,20 @@
             "Security"
           ],
           "createdAt": "2026-11-17T12:00:00.000Z"
+        },
+        {
+          "id": "card-launch-28",
+          "title": "[Launch]: Prepare the open-source repo",
+          "description": "Publish the open-source core as a fresh repo (new git history): clients, projects, phases, tasks, client portal, basic files, en/es, dashboard. Single-admin.\nStrip Pro/Max features (templates, briefs, documents, invoices, emails, problem reports...) or move them to a private repo / ee/ folder.\n\nDone when:\n- [ ] gitleaks/trufflehog scan is clean\n- [ ] AGPL LICENSE + README self-host guide\n- [ ] builds and runs without Pro code",
+          "priority": "medium",
+          "assignee": "kiwikreativo",
+          "dueDate": "",
+          "tags": [
+            "Launch",
+            "phase-6",
+            "Open source"
+          ],
+          "createdAt": "2026-11-20T12:00:00.000Z"
         }
       ]
     },
@@ -540,5 +558,5 @@
       "cards": []
     }
   ],
-  "updatedAt": "2026-11-17T12:00:00.000Z"
+  "updatedAt": "2026-11-20T12:00:00.000Z"
 }

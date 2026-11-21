@@ -3,6 +3,9 @@ import { SERVICE_OR_BUNDLE } from '../lib/project-options';
 
 const optionalDate = z.string().date().nullable().optional();
 export const id = z.string().uuid();
+// Zod 4 still applies .default() inside .partial(), so a PATCH would reset every omitted field. Strip defaults instead.
+export const updateOf = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
+  z.object(Object.fromEntries(Object.entries(schema.shape).map(([key, field]) => [key, z.optional(field instanceof z.ZodDefault ? field.unwrap() : field)]))) as unknown as z.ZodObject<{ [K in keyof T]: z.ZodOptional<T[K] extends z.ZodDefault<infer Inner> ? Inner : T[K]> }>;
 export const loginSchema = z.object({ email: z.string().email(), password: z.string().min(8).max(200) });
 export const clientSchema = z.object({ name: z.string().trim().min(2).max(120), companyName: z.string().trim().max(160).nullable().optional(), email: z.string().trim().toLowerCase().email(), phone: z.string().trim().max(50).nullable().optional(), website: z.string().url().nullable().optional(), notes: z.string().trim().max(5000).nullable().optional(), status: z.enum(['lead', 'active', 'inactive', 'archived']).default('active'), preferredLanguage: z.enum(['en', 'es']).default('en') });
 export const servicePackage = z.enum(SERVICE_OR_BUNDLE);

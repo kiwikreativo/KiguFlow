@@ -10,6 +10,21 @@ export type ViewTask = {
   projectName: string;
   clientName: string;
 };
+// Full task row, as returned by GET /admin/projects/:id.
+export type Task = {
+  id: string;
+  phaseId: string | null;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  assigneeType: string;
+  assigneeName: string | null;
+  dueDate: string | null;
+  clientVisible: boolean;
+  requiresClientAction: boolean;
+  sortOrder: number;
+};
 export type SortKey = "priority" | "date";
 export type TaskGroup = { projectId: string; projectName: string; tasks: ViewTask[]; done: number; total: number };
 

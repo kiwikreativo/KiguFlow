@@ -23,7 +23,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, isAbortError, isAuthenticationError } from "@/lib/api";
-import { Modal } from "./Modal";
+import { TaskModal } from "./TaskModal";
 import { Shell } from "./Shell";
 import {
   assigneeOf,
@@ -33,6 +33,7 @@ import {
   initials,
   sortTasks,
   type SortKey,
+  type Task,
   type ViewTask,
 } from "./tasksView";
 
@@ -103,7 +104,7 @@ export function Tasks() {
   const [grouped, setGrouped] = useState(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [inspect, setInspect] = useState<ViewTask | null>(null);
+  const [inspect, setInspect] = useState<{ task: Task; projectId: string; phases: Array<{ id: string; name: string }> } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -156,12 +157,43 @@ export function Tasks() {
     }
   }
 
+  // The list row is slim; the project endpoint has the full task (description, flags) and its phases.
+  async function openTask(task: ViewTask) {
+    try {
+      const project = await api<{ tasks: Task[]; phases: Array<{ id: string; name: string }> }>(`/admin/projects/${task.projectId}`);
+      const full = project.tasks.find((t) => t.id === task.id);
+      if (full) setInspect({ task: full, projectId: task.projectId, phases: project.phases });
+      else setLoadError("This task no longer exists.");
+    } catch (error) {
+      if (isAuthenticationError(error)) location.href = "/login";
+      else setLoadError(error instanceof Error ? error.message : "Could not open task");
+    }
+  }
+
+  function taskSaved(task: Task) {
+    const { title, status, priority, dueDate, assigneeType, assigneeName } = task;
+    setRows((current) => current.map((t) => (t.id === task.id ? { ...t, title, status, priority, dueDate, assigneeType, assigneeName } : t)));
+    setInspect(null);
+  }
+
+  async function deleteTask(task: Task) {
+    if (!confirm(`Delete “${task.title}”? This cannot be undone.`)) return;
+    try {
+      await api(`/admin/tasks/${task.id}`, { method: "DELETE" });
+      setRows((current) => current.filter((t) => t.id !== task.id));
+      setInspect(null);
+    } catch (error) {
+      if (isAuthenticationError(error)) location.href = "/login";
+      else setLoadError(error instanceof Error ? error.message : "Could not delete task");
+    }
+  }
+
   // Latest state for the keydown listener without re-binding it every render.
-  const keyState = useRef({ navOrder, focusId, inspect, toggleDone });
-  keyState.current = { navOrder, focusId, inspect, toggleDone };
+  const keyState = useRef({ navOrder, focusId, inspect, toggleDone, openTask });
+  keyState.current = { navOrder, focusId, inspect, toggleDone, openTask };
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const { navOrder, focusId, inspect, toggleDone } = keyState.current;
+      const { navOrder, focusId, inspect, toggleDone, openTask } = keyState.current;
       const target = event.target as HTMLElement;
       if (inspect || event.metaKey || event.ctrlKey || event.altKey) return;
       if (target.closest("input, textarea, select, [contenteditable='true']")) return;
@@ -179,7 +211,7 @@ export function Tasks() {
         void toggleDone(navOrder[index]!);
       } else if (event.key === " " && index >= 0 && !target.closest("button, a")) {
         event.preventDefault();
-        setInspect(navOrder[index]!);
+        void openTask(navOrder[index]!);
       }
     };
     document.addEventListener("keydown", onKey);
@@ -218,7 +250,7 @@ export function Tasks() {
           onChange={() => void toggleDone(t)}
           aria-label={`Mark "${t.title}" as ${done ? "to do" : "completed"}`}
         />
-        <button type="button" className={`task-title${done ? " is-done" : ""}`} onClick={() => setInspect(t)}>
+        <button type="button" className={`task-title${done ? " is-done" : ""}`} onClick={() => void openTask(t)}>
           {isCritical(t) && <span aria-hidden="true" className="mr-1.5 font-bold">!</span>}
           {t.title}
         </button>
@@ -397,21 +429,14 @@ export function Tasks() {
       </footer>
 
       {inspect && (
-        <Modal title={inspect.title} onClose={() => setInspect(null)}>
-          <dl className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-3 text-sm">
-            <dt className="text-[var(--ink-soft)]">Project</dt>
-            <dd>{inspect.projectName} — {inspect.clientName}</dd>
-            <dt className="text-[var(--ink-soft)]">Assignee</dt>
-            <dd>{assigneeOf(inspect)}</dd>
-            <dt className="text-[var(--ink-soft)]">Status</dt>
-            <dd><StatusPill task={rows.find((t) => t.id === inspect.id) ?? inspect} /></dd>
-            <dt className="text-[var(--ink-soft)]">Priority</dt>
-            <dd className="capitalize">{inspect.priority}</dd>
-            <dt className="text-[var(--ink-soft)]">Due</dt>
-            <dd>{inspect.dueDate ?? "No date"}</dd>
-          </dl>
-          <a href={`/projects/${inspect.projectId}`} className="btn-primary mt-6 w-full">Open project</a>
-        </Modal>
+        <TaskModal
+          task={inspect.task}
+          phases={inspect.phases}
+          onClose={() => setInspect(null)}
+          onSaved={taskSaved}
+          onDelete={deleteTask}
+          extraAction={<a href={`/projects/${inspect.projectId}`} className="btn-secondary">Open project</a>}
+        />
       )}
     </Shell>
   );

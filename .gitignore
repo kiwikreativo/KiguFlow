@@ -11,3 +11,4 @@ coverage/
 *.log
 .DS_Store
 graphify-out/
+docs/pricing-tiers.md
